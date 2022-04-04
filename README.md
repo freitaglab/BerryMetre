@@ -15,5 +15,5 @@ The Arduino Pro Mini communicates via serial communication with a Wemos D1 Mini,
 in Python and uses Matplotlib for real-time visualization of the J-V-curve and power generation. It takes care of tweeting the results, cloud communication, and sticker printing.
 
 ## Licenses
-- GNU General Public License v3.0 - used for source code developed for the BerryMetre
+- GNU AFFERO GENERAL PUBLIC LICENSE v3.0 - used for source code developed for the BerryMetre
 - Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) - used for design and related files of the PCBs 
