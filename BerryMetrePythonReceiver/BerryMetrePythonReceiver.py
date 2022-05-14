@@ -95,7 +95,7 @@ SAVETIME = 5            # Seconds after which to save figure
 FONTSIZE = 36
 
 printerMac = '20:20:08:1b:3a:1a'    # PeriPage
-PRINTER_IDENTIFIER = 'tcp://192.168.1.176' # Brother Network Print
+PRINTER_IDENTIFIER = 'tcp://192.168.15.5' # Brother Network Print
 
 def sendToBrotherPrinter(path):
     brotherprinter = BrotherQLRaster('QL-810W')
