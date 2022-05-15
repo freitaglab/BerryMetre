@@ -1,4 +1,4 @@
-# BerryCells for Berry Future
+# Berry Solar Cells for Berry Future
 ## Overview
 The BerryMetre is an open source solar simulator for small solar cells, which has been developed for the Royal Society Summer Science Exhibition 2022. Children (and interested adults) fabricate a
 small working dye-sensitised solar cell (DSC) using conductive glass, titanium dioxide, and berry juice (which acts as a dye to absorb the light). The solar cell is then measured using the
@@ -14,14 +14,15 @@ maximum power point (MPP) can calculated.
 The Arduino Pro Mini communicates via serial communication with a Wemos D1 Mini, which acts as a UDP relay to send the data to any receiver via regular WiFi. The receiver has been implemented
 in Python and uses Matplotlib for real-time visualization of the J-V-curve and power generation. It takes care of tweeting the results, cloud communication, and sticker printing.
 
-## Read the Wiki
-Head over to the [Wiki](../../wiki) to learn more about
+## More to read
+To learn about the solar cells, go to [berrycells.com](https://www.berrycells.com/). If you want to learn more about the technical implementation, head over to the [Wiki](../../wiki) to learn about
 * Hardware components
 * Printing stickers
 * Wireless setup
 * Gesture controlling a lamp using a Leap motion controller
-* And more...
 
 ## Licenses
 - GNU AFFERO GENERAL PUBLIC LICENSE v3.0 - used for source code developed for the BerryMetre
 - Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) - used for design and related files of the PCBs 
+
+![Selected for Summer Science Exhibition 2022](https://github.com/freitaglab/BerryMetre/raw/main/BerryMetrePythonReceiver/res/RS_original.png "Selected for Summer Science Exhibition 2022")
