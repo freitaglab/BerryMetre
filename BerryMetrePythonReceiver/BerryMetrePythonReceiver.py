@@ -42,6 +42,9 @@ import os
 
 # Change directory to script directory
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
+# Make output directory for saved images
+if not os.path.exists('out'):
+    os.makedirs('out')
 
 # ToDo:
 # - Remove interpolation line?
@@ -113,6 +116,7 @@ mppcolor = '#7a04eb'
 currentlinecolor = '#ebb104'
 currentpointcolor = '#ebb104'
 powerfillcolor = '#ebb104'
+berrypink = '#e6007e'
 
 INTERPOLATIONTYPE = "linear"
 
@@ -227,17 +231,17 @@ class ProcessSerial(threading.Thread):
 def SocialActionFunction(fileTimeStamp, cellNumber):
     print("Process social actions: " + fileTimeStamp + ", cell number: " + str(cellNumber))
 
-    imagePngOut = "out/mycell-" + fileTimeStamp + ".png"
-    imagePngFileName = "mycell-" + fileTimeStamp + ".png"
+    imagePngOut = "out/" + fileTimeStamp + ".png"
+    imagePngFileName = "" + fileTimeStamp + ".png"
 
-    stickerFileOut = "out/mycell-" + fileTimeStamp + "-sticker.png"
-    stickerFileName = "mycell-" + fileTimeStamp + "-sticker.png"
+    stickerFileOut = "out/" + fileTimeStamp + "-sticker.png"
+    stickerFileName = "" + fileTimeStamp + "-sticker.png"
 
-    qrFileOut = "out/mycell-" + fileTimeStamp + "-qr.png"
-    qrFileName = "mycell-" + fileTimeStamp + "-qr.png"
+    qrFileOut = "out/" + fileTimeStamp + "-qr.png"
+    qrFileName = "" + fileTimeStamp + "-qr.png"
 
-    htmlFileOut = "out/mycell-" + fileTimeStamp + ".html"
-    htmlFileName = "mycell-" + fileTimeStamp + ".html"
+    htmlFileOut = "out/" + fileTimeStamp + ".html"
+    htmlFileName = "" + fileTimeStamp + ".html"
 
     if tweetResult == True:
         print('Tweet the result!')
@@ -248,7 +252,7 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
         print(status.text)
     if uploadToGoogle == True and tweetResult == False:
         print('Point QR code to google, not tweet!')
-        qrString = 'www.berrycells.com/' + htmlFileName
+        qrString = 'my.berrycells.com/' + htmlFileName
         print(qrString)
     if uploadToGoogle == False and tweetResult == False:
         print('Point QR Code to berrycells.com!')
@@ -299,9 +303,9 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
 
 
     if uploadToGoogle == True:
-        upload_blob("www.berrycells.com", imagePngOut, imagePngFileName)
-        upload_blob("www.berrycells.com", htmlFileOut, htmlFileName)
-        upload_blob("www.berrycells.com", stickerFileOut, stickerFileName)
+        upload_blob("my.berrycells.com", imagePngOut, imagePngFileName)
+        upload_blob("my.berrycells.com", htmlFileOut, htmlFileName)
+        upload_blob("my.berrycells.com", stickerFileOut, stickerFileName)
 
     if printSticker == True:
         printQueue.put((stickerFileOut, cellNumber))
@@ -487,7 +491,7 @@ maxPowerAnnotation = ax.annotate(
 
 # Placeholder annotation for cell measurement counter
 cellInfoAnnotation = axQ.annotate(
-    '', xy=(0,0), xytext=(0.5,0.25), size=FONTSIZE, ha='center'
+    '', xy=(0,0), xytext=(0.5,0.25), size=FONTSIZE, ha='center', color = berrypink
 )
 
 # at = AnchoredText(
@@ -497,13 +501,13 @@ cellInfoAnnotation = axQ.annotate(
 
 
 fig.set_size_inches(17,13)
-ax.set_xlabel('Voltage (V)', size=FONTSIZE)
-ax.set_ylabel('Current (mA)', size=FONTSIZE)
-ax.set_title('Berry Solar Power', size=FONTSIZE+4)
+ax.set_xlabel('Voltage (V)', size=FONTSIZE, color = berrypink)
+ax.set_ylabel('Current (mA)', size=FONTSIZE, color = berrypink)
+ax.set_title('Berry Solar Power', size=FONTSIZE+4, color = berrypink)
 ax.grid(color = gridcolor, linestyle = '--', linewidth = 0.3)
 
 ax2 = ax.twinx()
-ax2.set_ylabel('Power (mW)', size=FONTSIZE)
+ax2.set_ylabel('Power (mW)', size=FONTSIZE, color = berrypink)
 ax2.set_ylim([0, ymax*POWERSCALE])
 
 axQ.set_xticks([])
@@ -819,8 +823,8 @@ while (True):
             ax.draw_artist(filler)
             fileTimeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") 
 
-            imagePngOut = "out/mycell-" + fileTimeStamp + ".png"
-            stickerFileOut = "out/mycell-" + fileTimeStamp + "-sticker.png"
+            imagePngOut = "out/" + fileTimeStamp + ".png"
+            stickerFileOut = "out/" + fileTimeStamp + "-sticker.png"
 
             fig.canvas.flush_events()
             plt.savefig(imagePngOut)
