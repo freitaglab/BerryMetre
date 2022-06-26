@@ -11,6 +11,7 @@
 // const char* password = "YOURSUPERSECRETPASSWORD"; //Replace with your own password
 
 #define TARGET_IP "192.168.15.2"
+
 #define UDP_PORT 6819
 #define UDP_RECEIVE 6820
 
@@ -25,6 +26,9 @@ WiFiUDP UDPReceive;
 char incomingPacket[255];
 char dtbuff[255];
 char dtchar[5];
+
+char idbuff[255];
+char idchar[5];
 
 const int ledPin = 2;
 String ledState;
@@ -89,6 +93,9 @@ void evaluateNewData() {
       else
       {
         UDP.beginPacket(TARGET_IP, UDP_PORT);
+        UDP.write("id:");
+        UDP.write(idchar);
+        UDP.write(",");
         UDP.write(receivedChars);
         UDP.endPacket();
       }
@@ -123,28 +130,32 @@ void processUdpPackage(){
       incomingPacket[len] = 0;
     }
 
-   char * p = strstr (incomingPacket, "dt,");
-   if (p) {
-    // Serial.println("<DT configuration value found, updating flash and sending to Arduino...>");
-
-    // Serial.print("<dt,");
-    // Serial.print(dtchar);
-    // Serial.println(">");
-
+   // Update dwell time
+   char * dt = strstr (incomingPacket, "dt,");
+   if (dt) {
     Serial.println(incomingPacket);
     File file = LittleFS.open("/dt.txt", "w");
-    file.print(p);
+    file.print(dt);
     delay(1);
     file.close();
 
-   } else {
-    Serial.println(incomingPacket);
-    // Serial.println("Other package content");
    }
-    // Serial.println(incomingPacket);
 
-    // Serial.print("Packet received: ");
-    // Serial.println(packet);
+   // Update device id
+   char * id = strstr (incomingPacket, "id,");
+   if (id) {
+    Serial.println(incomingPacket);
+    File file = LittleFS.open("/id.txt", "w");
+    file.print(id);
+    delay(1);
+    file.close();
+
+   }
+   Serial.println(incomingPacket);
+
+   // Serial.println(incomingPacket);
+   // Serial.print("Packet received: ");
+   // Serial.println(packet);
   }
 }
 
@@ -246,10 +257,46 @@ void setup(){
     UDP.write("Configured dwell time: ");
     UDP.write(dtchar);
 
+    Serial.print("Configured dwell time: ");
+    Serial.println(dtchar);
+
     // UDP.write(file.read());
   }
   file.close();
   UDP.endPacket();
+  delay(250);
+
+  // Read device id configuration
+  file = LittleFS.open("/id.txt", "r");
+  if(!file){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+  
+  UDP.beginPacket(TARGET_IP, UDP_PORT);
+  while(file.available()){
+
+    file.size();
+
+    file.readBytes(idbuff, file.size());
+
+    memcpy( idchar, &idbuff[3], 4 );
+    idchar[4] = '\0';
+
+    unsigned int idval;
+    sscanf(idchar, "%d", &idval);
+
+    UDP.write("Configured device id: ");
+    UDP.write(idchar);
+
+    Serial.print("Configured device id: ");
+    Serial.println(idchar);
+
+    // UDP.write(file.read());
+  }
+  file.close();
+  UDP.endPacket();
+  delay(250);
 
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
