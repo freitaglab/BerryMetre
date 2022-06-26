@@ -295,7 +295,7 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
     final.save(stickerFileOut)
     # print("Saving figure...")
 
-    with open ("res/mycelltemplate.html", "r") as myfile:
+    with open ("res/mycelltemplate2.html", "r") as myfile:
         data=myfile.read()
         data = data.replace("$IMAGE$",imagePngFileName)
         htmlOut = open(htmlFileOut, "w")
