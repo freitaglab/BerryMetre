@@ -71,6 +71,8 @@ forwardUdp = True
 scaleWidth = 576          # scalewidth for print 576 for PeriPage, 696 for QL-810W
 printerType = 'brother'        # peripage or brother
 
+ncllogoyoffset=0.7
+
 # TODO: Rename variables for proper order!
 if printerType == 'brother':
     scaleWidth = 732
@@ -761,7 +763,7 @@ while (True):
             # filler = ax.fill_between((0,xpos),(maxcurrent,maxcurrent), color = powerfillcolor, alpha = 0.15)
             
             if saveImageNow == False:
-                ab = AnnotationBbox(imagebox, (xmax/2,ymax*0.76), bboxprops =dict(alpha=0.0))
+                ab = AnnotationBbox(imagebox, (xmax/2,ymax*ncllogoyoffset), bboxprops =dict(alpha=0.0))
                 ax.add_artist(ab)
                 ax.draw_artist(ab)
                 ab.remove()
@@ -814,7 +816,7 @@ while (True):
             # print("Save image now")
 
             # Draw annotation box once for printing
-            ab = AnnotationBbox(imagebox, (xmax/2,ymax*0.76), bboxprops =dict(alpha=0.0))
+            ab = AnnotationBbox(imagebox, (xmax/2,ymax*ncllogoyoffset), bboxprops =dict(alpha=0.0))
             ax.add_artist(ab)
             ax.draw_artist(ab)
 
