@@ -13,13 +13,15 @@ import numpy as np
 import threading
 import queue
 import qrcode
-import ppa6
+# import ppa6
 import twitter
 from google.cloud import storage
 import serial
 import requests
 from pynput import keyboard
 import io
+import sys
+import os
 import brother_ql
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
@@ -34,9 +36,8 @@ import berrytwitter # berrytwitter contains class with Twitter credentials:
 from scipy.interpolate import interp1d
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 
-import os
-# Set on Raspberry or Linux
-# os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="/home/pi/Desktop/BerryMetrePythonReceiver/freitaglab.json"
+if sys.platform == 'linux':
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"]= os.path.dirname(os.path.realpath(__file__)) + "/freitaglab.json"
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -311,14 +312,6 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
 
     if printSticker == True:
         printQueue.put((stickerFileOut, cellNumber))
-        # printer = ppa6.Printer(printerMac, ppa6.PrinterType.A6p)
-        # printer.connect()
-        # printer.reset()
-        # printer.setConcentration(2)
-        # printer.printBreak(25)
-        # printer.printImage(final)
-        # printer.printBreak(25)
-        # printer.disconnect()
     else:
         final.show()
 
@@ -428,7 +421,7 @@ info = nullinfo
 
 # plt.ion()
 plt.style.use('dark_background')
-logo = mpimage.imread('res\\ncl3.png')
+logo = mpimage.imread('res/ncl3.png')
 
 imagebox = OffsetImage(logo, zoom=1.5)
 
@@ -438,7 +431,9 @@ plt.xticks(fontsize=FONTSIZE)
 plt.yticks(fontsize=FONTSIZE)
 
 
-fig.canvas.toolbar.pack_forget()
+# Only needed on Windows
+if sys.platform == 'win32':
+    fig.canvas.toolbar.pack_forget()
 
 if fullscreen == True:
     manager = plt.get_current_fig_manager()
@@ -550,26 +545,29 @@ def printQueueWorker():
         count = item[1]
         print(f'Printing  {filename}, cell number {count}, sending to {printerType}')
 
-        if printerType == 'peripage':
-            final = Image.open(filename)
-            ppa6printer = ppa6.Printer(printerMac, ppa6.PrinterType.A6p)
-            ppa6printer.connect()
-            ppa6printer.reset()
-            ppa6printer.setConcentration(1)
-            ppa6printer.printBreak(25)
-            ppa6printer.printImage(final)
-            text = " Berry Cell #{}\n".format(count) 
-            ppa6printer.printBreak(10)
-            ppa6printer.printASCII(text)
-            ppa6printer.printBreak(25)
-            ppa6printer.disconnect()
+        
+        if printerType == 'brother':
+            sendToBrotherPrinter(filename)
+            print(f'{filename} sent to {PRINTER_IDENTIFIER}')
+
+        # elif printerType == 'peripage':
+        #     final = Image.open(filename)
+        #     ppa6printer = ppa6.Printer(printerMac, ppa6.PrinterType.A6p)
+        #     ppa6printer.connect()
+        #     ppa6printer.reset()
+        #     ppa6printer.setConcentration(1)
+        #     ppa6printer.printBreak(25)
+        #     ppa6printer.printImage(final)
+        #     text = " Berry Cell #{}\n".format(count) 
+        #     ppa6printer.printBreak(10)
+        #     ppa6printer.printASCII(text)
+        #     ppa6printer.printBreak(25)
+        #     ppa6printer.disconnect()
 
             print(f'Done printing {filename}, you have 5 seconds to cut the paper')
             time.sleep(5)
-        
-        elif printerType == 'brother':
-            sendToBrotherPrinter(filename)
-            print(f'{filename} sent to {PRINTER_IDENTIFIER}')
+
+
         printQueue.task_done()
 
 # turn-on the worker thread

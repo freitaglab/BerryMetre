@@ -1,0 +1,9 @@
+matplotlib
+qrcode
+python-twitter
+google-cloud
+google-cloud-storage
+serial
+pynput
+brother-ql
+scipy
