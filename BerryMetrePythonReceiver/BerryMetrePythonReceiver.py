@@ -56,7 +56,7 @@ if not os.path.exists('out'):
 
 # mode is either 'serial' or 'udp'
 mode = 'udp'
-fullscreen = True
+fullscreen = False
 printrendertime = False
 printSticker = False
 uploadToGoogle = False
@@ -99,7 +99,7 @@ AREF = 4.0
 AREFFACTOR = VIN/AREF
 
 SAVETIME = 5            # Seconds after which to save figure
-FONTSIZE = 36
+FONTSIZE = 24
 
 printerMac = '20:20:08:1b:3a:1a'    # PeriPage
 PRINTER_IDENTIFIER = 'tcp://192.168.15.5' # Brother Network Print
@@ -488,7 +488,7 @@ maxPowerAnnotation = ax.annotate(
 
 # Placeholder annotation for cell measurement counter
 cellInfoAnnotation = axQ.annotate(
-    '', xy=(0,0), xytext=(0.5,0.25), size=FONTSIZE, ha='center', color = berrypink
+    '', xy=(0,0), xytext=(0.5,0.33), size=FONTSIZE, ha='center', color = berrypink
 )
 
 # at = AnchoredText(
@@ -500,7 +500,7 @@ cellInfoAnnotation = axQ.annotate(
 fig.set_size_inches(17,13)
 ax.set_xlabel('Voltage (V)', size=FONTSIZE, color = berrypink)
 ax.set_ylabel('Current (mA)', size=FONTSIZE, color = berrypink)
-ax.set_title('Berry Solar Power', size=FONTSIZE+4, color = berrypink)
+ax.set_title('Berry Solar Power', size=FONTSIZE+12, color = berrypink)
 ax.grid(color = gridcolor, linestyle = '--', linewidth = 0.3)
 
 ax2 = ax.twinx()
@@ -510,7 +510,16 @@ ax2.set_ylim([0, ymax*POWERSCALE])
 axQ.set_xticks([])
 axQ.set_yticks([])
 
+for label in ax.xaxis.get_majorticklabels():
+        label.set_color(berrypink)
+        label.set_fontsize(FONTSIZE)
+
+for label in ax.yaxis.get_majorticklabels():
+        label.set_color(berrypink)
+        label.set_fontsize(FONTSIZE)
+
 for label in ax2.yaxis.get_majorticklabels():
+        label.set_color(berrypink)
         label.set_fontsize(FONTSIZE)
 
 # ax.imshow(logo, extent=[0,1,0,1])
