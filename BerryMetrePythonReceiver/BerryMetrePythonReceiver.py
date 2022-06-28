@@ -35,8 +35,8 @@ import berrytwitter # berrytwitter contains class with Twitter credentials:
 import berryconfig # berryconfig contains a class with configuration:
 # class BerryConfiguration():
 #     deviceid = 17                               # Device id; only packages coming from this id will be processed
-#     udp_ip = "192.168.15.2"                    # Local IP
-#     udp_fip = "192.168.15.9"                    # Forward IP
+#     udp_ip = "192.168.15.2"                     # Local IP
+#     udp_fip = ["192.168.15.9","192.168.15.10"]  # Forward IP
 #     forwardUdp = True                           # forward udp packages to other IP or not
 #     mode = 'udp'                                # udp or serial
 #     fullscreen = False
@@ -376,7 +376,9 @@ class ProcessUDP(threading.Thread):
 
         sockf = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         MESSAGE = b"Hello from receiver!"
-        sockf.sendto(MESSAGE, (UDP_FIP, UDP_PORT))
+
+        for FIP in UDP_FIP:
+            sockf.sendto(MESSAGE, (FIP, UDP_PORT))
 
         # global flag
         # global val     #made global here
@@ -396,7 +398,8 @@ class ProcessUDP(threading.Thread):
                 
                 # Forward UDP
                 if forwardUdp == True:
-                    sockf.sendto(data, (UDP_FIP, UDP_PORT))
+                    for FIP in UDP_FIP:
+                        sockf.sendto(data, (FIP, UDP_PORT))
 
                 # if packageReceived == False:
                 #     acquisitionstarttime = datetime.datetime.now()
