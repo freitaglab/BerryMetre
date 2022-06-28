@@ -32,6 +32,29 @@ import berrytwitter # berrytwitter contains class with Twitter credentials:
 #    consumer_secret=''
 #    access_token_key=''
 #    access_token_secret=''
+import berryconfig # berryconfig contains a class with configuration:
+# class BerryConfiguration():
+#     deviceid = 17                               # Device id; only packages coming from this id will be processed
+#     udp_ip = "192.168.15.2"                    # Local IP
+#     udp_fip = "192.168.15.9"                    # Forward IP
+#     forwardUdp = True                           # forward udp packages to other IP or not
+#     mode = 'udp'                                # udp or serial
+#     fullscreen = False
+#     printrendertime = False
+#     printSticker = False
+#     uploadToGoogle = False
+#     tweetResult = False
+#     usemovingaverage = False
+#     mavalues = 3                                # How many values to consider for moving average
+#     udptimeout = 10.0                           # depends on dwell time
+#     serialtimeout = 0.5
+#     udpbuffersize = 256
+#     currentCell = 1
+#     scaleWidth = 576                            # scalewidth for print 576 for PeriPage, 696 for QL-810W
+#     printerType = 'brother'                     # peripage or brother
+#     printerMac = '20:20:08:1b:3a:1a'            # PeriPage
+#     printeridentifier = 'tcp://192.168.15.5'    # Brother Network Print
+#     comport = 'COM5'
 
 from scipy.interpolate import interp1d
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
@@ -54,23 +77,25 @@ if not os.path.exists('out'):
 # - Make configuration and code more modular
 # - Autoscale axis, or at least some calibration step for scaling
 
+config = berryconfig.BerryConfiguration()
+
 # mode is either 'serial' or 'udp'
-mode = 'udp'
-fullscreen = False
-printrendertime = False
-printSticker = False
-uploadToGoogle = False
-tweetResult = False
+mode = config.mode
+fullscreen = config.fullscreen
+printrendertime = config.printrendertime
+printSticker = config.printSticker
+uploadToGoogle = config.uploadToGoogle
+tweetResult = config.tweetResult
 # printIVcurve = False
-USEMOVINGAVERAGE = False
-MAVALUES = 3                # How many values to consider for moving average
-UDPTIMEOUT = 10.0          # 0.5 for silicon cell, 2 for dye cell, depends on dwell time
-SERIALTIMEOUT = 0.5
-UDPBUFFERSIZE = 256
-currentCell = 1
-forwardUdp = True
-scaleWidth = 576          # scalewidth for print 576 for PeriPage, 696 for QL-810W
-printerType = 'brother'        # peripage or brother
+USEMOVINGAVERAGE = config.usemovingaverage
+MAVALUES = config.mavalues                # How many values to consider for moving average
+UDPTIMEOUT = config.udptimeout          # 0.5 for silicon cell, 2 for dye cell, depends on dwell time
+SERIALTIMEOUT = config.serialtimeout
+UDPBUFFERSIZE = config.udpbuffersize
+currentCell = config.currentCell
+forwardUdp = config.forwardUdp
+scaleWidth = config.scaleWidth          # scalewidth for print 576 for PeriPage, 696 for QL-810W
+printerType = config.printerType        # peripage or brother
 
 ncllogoyoffset=0.7
 
@@ -101,8 +126,8 @@ AREFFACTOR = VIN/AREF
 SAVETIME = 5            # Seconds after which to save figure
 FONTSIZE = 24
 
-printerMac = '20:20:08:1b:3a:1a'    # PeriPage
-PRINTER_IDENTIFIER = 'tcp://192.168.15.5' # Brother Network Print
+printerMac = config.printerMac # PeriPage
+PRINTER_IDENTIFIER = config.printeridentifier # Brother Network Print
 
 def sendToBrotherPrinter(path):
     brotherprinter = BrotherQLRaster('QL-810W')
@@ -153,10 +178,10 @@ ymax = 2.0
 # ymax = 0.5
 
 
-COMPORT = 'COM5'
-UDP_IP = "192.168.15.2"  # Local IP
-UDP_FIP = "192.168.15.9" # Forward IP
-UDP_PORT = 6819
+COMPORT = config.comport
+UDP_IP = config.udp_ip      # Local IP
+UDP_FIP = config.udp_fip    # Forward IP
+UDP_PORT = 6819             # If you change this, you need to reconfigure the microcontrollers
 prevCount = 0
 
 saveImageNow = False
@@ -361,6 +386,13 @@ class ProcessUDP(threading.Thread):
                 data, addr = sock.recvfrom(UDPBUFFERSIZE)
                 info = data.decode()
                 stimeout = False
+
+                if (info.startswith("id:")):
+                    packageid = int(info.split(",")[0].removeprefix("id:"))
+
+                    if packageid == config.deviceid:
+                        pref = "id:" + str(packageid) + ","
+                        info = info.removeprefix(pref)
                 
                 # Forward UDP
                 if forwardUdp == True:
