@@ -1,9 +1,15 @@
 import sys
 import socket
 import os
+import lampconfig # berrytwitter contains class with Twitter credentials:
+#class LampConfiguration():
+#    IP =''
+#    Port =''
 
-UDP_IP = "192.168.15.10"
-UDP_PORT = 6819
+config = lampconfig.LampConfiguration()
+
+UDP_IP = config.ip
+UDP_PORT = config.port
 
 sock = socket.socket(socket.AF_INET, # Internet
                      socket.SOCK_DGRAM) # UDP
