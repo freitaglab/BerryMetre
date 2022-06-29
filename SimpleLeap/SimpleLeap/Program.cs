@@ -1,8 +1,10 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 
 namespace SimpleLeap
 {
@@ -79,6 +81,12 @@ namespace SimpleLeap
 
     class Program
     {
+        public class LampConfiguration
+        {
+            public string IP { get; set; }
+            public int Port { get; set; }
+        }
+
         static void Main(string[] args)
         {
             int bLevel = 0;
@@ -98,8 +106,16 @@ namespace SimpleLeap
             System.Threading.Thread.Sleep(500);
 
             bool lightOn = false;
-            string lampIP = "192.168.15.10";
-            int lampPort = 6819;
+
+            string fileName = "lamp.json";
+            string jsonString = File.ReadAllText(fileName);
+
+            LampConfiguration? lampConfiguration = JsonSerializer.Deserialize<LampConfiguration>(jsonString);
+
+            //string jsonString = JsonSerializer.Deserialize(lampConfiguration);
+
+            string lampIP = lampConfiguration.IP;
+            int lampPort = lampConfiguration.Port;
 
             Input.POINT myPoint;
             bool leftButton = false;
