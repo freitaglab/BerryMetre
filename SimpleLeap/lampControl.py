@@ -3,8 +3,8 @@ import socket
 import os
 import lampconfig # berrytwitter contains class with Twitter credentials:
 #class LampConfiguration():
-#    IP =''
-#    Port =''
+#    ip = '192.168.15.10'
+#    port = 6819
 
 config = lampconfig.LampConfiguration()
 
