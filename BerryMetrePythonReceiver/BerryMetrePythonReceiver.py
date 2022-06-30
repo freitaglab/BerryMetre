@@ -1,4 +1,5 @@
 from concurrent.futures import process
+from turtle import forward
 import matplotlib
 import socket
 import datetime
@@ -38,6 +39,7 @@ import berryconfig # berryconfig contains a class with configuration:
 #     udp_ip = "192.168.15.2"                     # Local IP
 #     udp_fip = ["192.168.15.9","192.168.15.10"]  # Forward IP
 #     forwardUdp = True                           # forward udp packages to other IP or not
+#     udpcellcounter = False                      # receive global cell counter via UDP
 #     mode = 'udp'                                # udp or serial
 #     fullscreen = False
 #     printrendertime = False
@@ -94,6 +96,7 @@ SERIALTIMEOUT = config.serialtimeout
 UDPBUFFERSIZE = config.udpbuffersize
 currentCell = config.currentCell
 forwardUdp = config.forwardUdp
+udpcellcounter = config.udpcellcounter
 scaleWidth = config.scaleWidth          # scalewidth for print 576 for PeriPage, 696 for QL-810W
 printerType = config.printerType        # peripage or brother
 
@@ -358,6 +361,20 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
 #                 processSocialAction = False
 
 
+class GlobalCellCounter(threading.Thread):
+    def __init__(self, name):
+        threading.Thread.__init__(self)
+        self.name = name
+
+    def run(self):
+        while True:
+            for FIP in UDP_FIP:
+                print("FIP: ", FIP)
+                message = "COUNT,"+str(currentCell)
+                print("Sending message with counter to ", FIP, ": ", message)
+                sockg = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sockg.sendto(bytes(message, "utf-8"), (FIP, UDP_PORT))
+            time.sleep(1)
 
 class ProcessUDP(threading.Thread):
     def __init__(self, name):
@@ -367,6 +384,7 @@ class ProcessUDP(threading.Thread):
     def run(self):
         global info
         global stimeout
+        global currentCell
         # global acquisitionstarttime
         # packageReceived = False
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -390,7 +408,12 @@ class ProcessUDP(threading.Thread):
                 stimeout = False
 
                 if (info.startswith("id:")):
-                    packageid = int(info.split(",")[0].removeprefix("id:"))
+                    s = info.split(",")
+                    packageid = int(s[0].removeprefix("id:"))
+
+                    if s[1] == "SAVE":
+                        print("Button save request received, increasing current cell counter!")
+                        currentCell=currentCell+1
 
                     if packageid == config.deviceid:
                         pref = "id:" + str(packageid) + ","
@@ -577,6 +600,11 @@ if mode == 'udp':
     a = ProcessUDP("UdpThread")
     a.start()
 # a.join()
+
+# Start broadcasting the global cell counter
+if config.forwardUdp == True:
+    b = GlobalCellCounter("GlobalCellCounterThread")
+    b.start()
 
 kbd = ProcessKeyboard("KbdThread")
 kbd.start()
@@ -882,7 +910,7 @@ while (True):
             # Start the thread
             th.start()
 
-            currentCell=currentCell+1
+            # currentCell=currentCell+1
             saveImageNow = False
             # processSocialAction = True
 
@@ -977,6 +1005,13 @@ while (True):
         saveImageNow = True
         dataprocessed = True
 
+    elif info.startswith("COUNT") and dataprocessed == False:
+        dataprocessed = True
+        if udpcellcounter == True:
+            s = info.split(",")
+            counter = s[1]
+            print("Received new cell counter: ", counter)
+            currentCell = int(counter)
     # elif info != nullinfo and info != "":
     #     print("Other: " + info)
     #     dataprocessed = True
