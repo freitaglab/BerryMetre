@@ -312,14 +312,23 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
     htmlFileOut = "out/" + fileTimeStamp + ".html"
     htmlFileName = "" + fileTimeStamp + ".html"
 
-    if tweetResult == True:
+    if tweetResult == True and uploadToGoogle == False:
         print('Tweet the result!')
         media_id = twitterApi.UploadMediaSimple(imagePngOut)
-        status = twitterApi.PostUpdate(status='We love dye cells!', media=media_id)
+        status = twitterApi.PostUpdate(status='I made a berry solar cell and here is the power profile!', media=media_id)
         qrString = status.media[0].url
         print(qrString)
         print(status.text)
-    if uploadToGoogle == True and tweetResult == False:
+    if tweetResult == True and uploadToGoogle == True:
+        print('Tweet the result!')
+        media_id = twitterApi.UploadMediaSimple(imagePngOut)
+        berryCellLink = 'https://my.berrycells.com/' + htmlFileName
+        statusText = 'I made a berry solar cell and this is the power profile! Find out how I made it: ' + berryCellLink
+        status = twitterApi.PostUpdate(status=statusText, media=media_id)
+        qrString = status.media[0].url
+        print(qrString)
+        print(status.text)
+    if tweetResult == False and uploadToGoogle == True:
         print('Point QR code to google, not tweet!')
         qrString = 'my.berrycells.com/' + htmlFileName
         print(qrString)
