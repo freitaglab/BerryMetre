@@ -136,6 +136,7 @@ printerMac = config.printerMac # PeriPage
 PRINTER_IDENTIFIER = config.printeridentifier # Brother Network Print
 
 def sendToBrotherPrinter(path):
+    global bigSticker
     brotherprinter = BrotherQLRaster('QL-810W')
     filename = path
     stickerAngle=90
