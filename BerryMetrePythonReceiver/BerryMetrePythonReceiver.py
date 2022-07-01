@@ -439,7 +439,7 @@ class ProcessUDP(threading.Thread):
                     s = info.split(",")
                     packageid = int(s[0].removeprefix("id:"))
 
-                    if s[1] == "SAVE":
+                    if s[1] == "SAVE" and forwardUdp == True:
                         print("Button save request received, increasing current cell counter!")
                         currentCell=currentCell+1
                         save_txt_cellcount(currentCell)
@@ -447,6 +447,11 @@ class ProcessUDP(threading.Thread):
                     if packageid == config.deviceid:
                         pref = "id:" + str(packageid) + ","
                         info = info.removeprefix(pref)
+
+                if info.startswith("COUNT") and forwardUdp == False:
+                    s = info.split(",")
+                    counter = s[1]
+                    currentCell = int(counter)
                 
                 # Forward UDP
                 if forwardUdp == True:
@@ -1033,14 +1038,6 @@ while (True):
         print("Network save request!")
         info = ""
         saveImageNow = True
-        dataprocessed = True
-
-    elif info.startswith("COUNT"):
-        if config.udpcellcounter == True:
-            s = info.split(",")
-            counter = s[1]
-            print("Received new cell counter: ", counter)
-            currentCell = int(counter)
         dataprocessed = True
 
     # elif info != nullinfo and info != "":
