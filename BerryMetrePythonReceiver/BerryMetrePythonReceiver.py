@@ -101,6 +101,8 @@ forwardUdp = config.forwardUdp
 scaleWidth = config.scaleWidth          # scalewidth for print 576 for PeriPage, 696 for QL-810W
 printerType = config.printerType        # peripage or brother
 
+bigSticker = False
+
 ncllogoyoffset=0.7
 
 # TODO: Rename variables for proper order!
@@ -136,7 +138,12 @@ PRINTER_IDENTIFIER = config.printeridentifier # Brother Network Print
 def sendToBrotherPrinter(path):
     brotherprinter = BrotherQLRaster('QL-810W')
     filename = path
-    print_data = brother_ql.brother_ql_create.convert(brotherprinter, [filename], '62red', dither=True, red=True, rotate=90)
+    stickerAngle=90
+    if bigSticker == True:
+        stickerAngle=0
+    print_data = brother_ql.brother_ql_create.convert(brotherprinter, [filename], '62red', dither=True, red=True, rotate=stickerAngle)
+    stickerAngle=90
+    bigSticker = False
     print("Brother printing...")
     send(print_data, PRINTER_IDENTIFIER)
 
@@ -1039,6 +1046,13 @@ while (True):
     elif info == "SAVE" and stimeout == False:
         print("Network save request!")
         info = ""
+        saveImageNow = True
+        dataprocessed = True
+
+    elif info == "SAVEBIG" and stimeout == False:
+        print("Network save request for a big sticker!")
+        info = ""
+        bigSticker = True
         saveImageNow = True
         dataprocessed = True
 
