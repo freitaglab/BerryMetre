@@ -14,6 +14,7 @@ import numpy as np
 import threading
 import queue
 import qrcode
+import json
 # import ppa6
 import twitter
 from google.cloud import storage
@@ -39,7 +40,6 @@ import berryconfig # berryconfig contains a class with configuration:
 #     udp_ip = "192.168.15.2"                     # Local IP
 #     udp_fip = ["192.168.15.9","192.168.15.10"]  # Forward IP
 #     forwardUdp = True                           # forward udp packages to other IP or not
-#     udpcellcounter = False                      # receive global cell counter via UDP
 #     mode = 'udp'                                # udp or serial
 #     fullscreen = False
 #     printrendertime = False
@@ -96,7 +96,6 @@ SERIALTIMEOUT = config.serialtimeout
 UDPBUFFERSIZE = config.udpbuffersize
 currentCell = config.currentCell
 forwardUdp = config.forwardUdp
-udpcellcounter = config.udpcellcounter
 scaleWidth = config.scaleWidth          # scalewidth for print 576 for PeriPage, 696 for QL-810W
 printerType = config.printerType        # peripage or brother
 
@@ -212,6 +211,35 @@ def get_concat_h(im1, im2):
     return dst
 
 # c = threading.Condition()
+
+def get_txt_cellcount():
+    global currentCell
+    if os.path.exists('cellcount.txt'):
+        # Using readlines()
+        file = open('cellcount.txt', 'r')
+        Lines = file.readlines()
+        count = 0
+        # Strips the newline character
+        for line in Lines:
+            if line.startswith("cellcount"):
+                s = line.split(",")
+                currentCell = int(s[1])
+                print("Current cell read from file: ", currentCell)
+    else:
+        L = "cellcount,1"
+        file = open('cellcount.txt', 'w')
+        file.writelines(L)
+        file.close()
+        currentCell = 1
+        print("Current cell did not exist, setting to 1.")
+
+def save_txt_cellcount(cellcount):
+    L = "cellcount," + str(cellcount)
+    file = open('cellcount.txt', 'w')
+    file.writelines(L)
+    file.close()
+    print("Cell count saved: ", cellcount)
+
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""
@@ -369,12 +397,12 @@ class GlobalCellCounter(threading.Thread):
     def run(self):
         while True:
             for FIP in UDP_FIP:
-                print("FIP: ", FIP)
                 message = "COUNT,"+str(currentCell)
-                print("Sending message with counter to ", FIP, ": ", message)
                 sockg = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sockg.sendto(bytes(message, "utf-8"), (FIP, UDP_PORT))
             time.sleep(1)
+                
+
 
 class ProcessUDP(threading.Thread):
     def __init__(self, name):
@@ -414,6 +442,7 @@ class ProcessUDP(threading.Thread):
                     if s[1] == "SAVE":
                         print("Button save request received, increasing current cell counter!")
                         currentCell=currentCell+1
+                        save_txt_cellcount(currentCell)
 
                     if packageid == config.deviceid:
                         pref = "id:" + str(packageid) + ","
@@ -603,6 +632,7 @@ if mode == 'udp':
 
 # Start broadcasting the global cell counter
 if config.forwardUdp == True:
+    get_txt_cellcount()
     b = GlobalCellCounter("GlobalCellCounterThread")
     b.start()
 
@@ -1005,13 +1035,14 @@ while (True):
         saveImageNow = True
         dataprocessed = True
 
-    elif info.startswith("COUNT") and dataprocessed == False:
-        dataprocessed = True
-        if udpcellcounter == True:
+    elif info.startswith("COUNT"):
+        if config.udpcellcounter == True:
             s = info.split(",")
             counter = s[1]
             print("Received new cell counter: ", counter)
             currentCell = int(counter)
+        dataprocessed = True
+
     # elif info != nullinfo and info != "":
     #     print("Other: " + info)
     #     dataprocessed = True
