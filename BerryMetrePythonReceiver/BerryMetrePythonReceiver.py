@@ -41,6 +41,7 @@ import berryconfig # berryconfig contains a class with configuration:
 #     udp_fip = ["192.168.15.9","192.168.15.10"]  # Forward IP
 #     forwardUdp = True                           # forward udp packages to other IP or not
 #     mode = 'udp'                                # udp or serial
+#     showQrCode = False                          # show QR code as option if you do not want to print the sticker
 #     fullscreen = False
 #     printrendertime = False
 #     printSticker = False
@@ -88,6 +89,7 @@ printrendertime = config.printrendertime
 printSticker = config.printSticker
 uploadToGoogle = config.uploadToGoogle
 tweetResult = config.tweetResult
+showQrCode = config.showQrCode
 # printIVcurve = False
 USEMOVINGAVERAGE = config.usemovingaverage
 MAVALUES = config.mavalues                # How many values to consider for moving average
@@ -368,9 +370,9 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
 
     if printSticker == True:
         printQueue.put((stickerFileOut, cellNumber))
-    else:
+    
+    if showQrCode == True:
         final.show()
-
 
 # class ProcessSocialAction(threading.Thread):
 #     def __init__(self, name):
