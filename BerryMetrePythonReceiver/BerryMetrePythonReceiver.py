@@ -536,7 +536,7 @@ logo = mpimage.imread('res/ncl3.png')
 
 imagebox = OffsetImage(logo, zoom=1.5)
 
-fig, (ax, axQ) = plt.subplots(2, gridspec_kw={'height_ratios': [8, 1]})
+fig, (ax, axQ) = plt.subplots(2, gridspec_kw={'height_ratios': [8, 1]}, constrained_layout=True)
 
 plt.xticks(fontsize=FONTSIZE)
 plt.yticks(fontsize=FONTSIZE)
