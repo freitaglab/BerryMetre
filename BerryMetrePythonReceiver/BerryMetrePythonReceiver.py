@@ -58,6 +58,8 @@ import berryconfig # berryconfig contains a class with configuration:
 #     printerMac = '20:20:08:1b:3a:1a'            # PeriPage
 #     printeridentifier = 'tcp://192.168.15.5'    # Brother Network Print
 #     comport = 'COM5'
+#     xmax = 1.0                                  # xmax value until we have autoscaling
+#     ymax = 1.0                                  # ymax value until we have autoscaling
 
 from scipy.interpolate import interp1d
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
@@ -183,12 +185,8 @@ nullinfo = nullinfo[:-1]
 # Scale power axis on right
 POWERSCALE = 0.5
 
-xmax = 2.5
-ymax = 2.0
-
-# xmax = 0.5
-# ymax = 0.5
-
+xmax = config.xmax
+ymax = config.ymax
 
 COMPORT = config.comport
 UDP_IP = config.udp_ip      # Local IP
