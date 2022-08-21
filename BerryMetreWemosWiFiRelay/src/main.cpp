@@ -7,15 +7,21 @@
 #include <WiFiUdp.h>
 #include "config.h" 
 // config.h is the local WiFi configuration file, containing two lines:
-// const char* ssid = "YOURSSID"; //Replace with your own SSID
+// const char* ssid = "YOURSSID"; // Replace with your own SSID
+// const char* apssid = "BerryMetre"; // Replace with desired SSID for AP mode
 // const char* password = "YOURSUPERSECRETPASSWORD"; //Replace with your own password
 
 #define TARGET_IP "192.168.15.2"
-
 #define UDP_PORT 6819
 #define UDP_RECEIVE 6820
+#define MAX_CONNECTION_TRIES 15 // Go into AP mode after 15 tries
 
 const unsigned int MAX_MESSAGE_LENGTH = 255;
+unsigned short connection_tries = 0;
+IPAddress local_IP(192,168,15,1);     // local IP for soft AP mode
+IPAddress gateway(192,168,15,2);
+IPAddress subnet(255,255,255,0);
+bool softAPMode = false;
 
 int count = 48; // ASCII 0
 
@@ -26,9 +32,6 @@ WiFiUDP UDPReceive;
 char incomingPacket[255];
 char dtbuff[255];
 char dtchar[5];
-
-char idbuff[255];
-char idchar[5];
 
 const int ledPin = 2;
 String ledState;
@@ -93,9 +96,6 @@ void evaluateNewData() {
       else
       {
         UDP.beginPacket(TARGET_IP, UDP_PORT);
-        UDP.write("id:");
-        UDP.write(idchar);
-        UDP.write(",");
         UDP.write(receivedChars);
         UDP.endPacket();
       }
@@ -130,32 +130,28 @@ void processUdpPackage(){
       incomingPacket[len] = 0;
     }
 
-   // Update dwell time
-   char * dt = strstr (incomingPacket, "dt,");
-   if (dt) {
+   char * p = strstr (incomingPacket, "dt,");
+   if (p) {
+    // Serial.println("<DT configuration value found, updating flash and sending to Arduino...>");
+
+    // Serial.print("<dt,");
+    // Serial.print(dtchar);
+    // Serial.println(">");
+
     Serial.println(incomingPacket);
     File file = LittleFS.open("/dt.txt", "w");
-    file.print(dt);
+    file.print(p);
     delay(1);
     file.close();
 
-   }
-
-   // Update device id
-   char * id = strstr (incomingPacket, "id,");
-   if (id) {
+   } else {
     Serial.println(incomingPacket);
-    File file = LittleFS.open("/id.txt", "w");
-    file.print(id);
-    delay(1);
-    file.close();
-
+    // Serial.println("Other package content");
    }
-   Serial.println(incomingPacket);
+    // Serial.println(incomingPacket);
 
-   // Serial.println(incomingPacket);
-   // Serial.print("Packet received: ");
-   // Serial.println(packet);
+    // Serial.print("Packet received: ");
+    // Serial.println(packet);
   }
 }
 
@@ -212,10 +208,29 @@ void setup(){
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(100);
-    // Serial.println("Connecting to WiFi..");
+  while (WiFi.status() != WL_CONNECTED && connection_tries < MAX_CONNECTION_TRIES) {
+    connection_tries++;
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
   }
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("Setup AP mode..");
+    WiFi.setSleepMode(WIFI_NONE_SLEEP);
+    WiFi.softAPConfig(local_IP, gateway, subnet );
+    boolean result = WiFi.softAP(apssid, password);
+    if(result == true)
+    {
+      Serial.println("Access Point ready!");
+      softAPMode = true;
+    }
+    else
+    {
+      Serial.println("Setting up Access Point failed!");
+    }
+  }
+
 
 // Begin listening to UDP port
   UDPReceive.begin(UDP_RECEIVE);
@@ -225,7 +240,15 @@ void setup(){
   // Connected to WiFi
   Serial.println();
   Serial.print("Connected! IP address: ");
-  Serial.println(WiFi.localIP());
+
+  if (softAPMode)
+  {
+    Serial.println(WiFi.softAPIP());
+  } 
+  else
+  {
+    Serial.println(WiFi.localIP());
+  }
   delay(250);
 
   UDP.beginPacket(TARGET_IP, UDP_PORT);
@@ -257,46 +280,10 @@ void setup(){
     UDP.write("Configured dwell time: ");
     UDP.write(dtchar);
 
-    Serial.print("Configured dwell time: ");
-    Serial.println(dtchar);
-
     // UDP.write(file.read());
   }
   file.close();
   UDP.endPacket();
-  delay(250);
-
-  // Read device id configuration
-  file = LittleFS.open("/id.txt", "r");
-  if(!file){
-    Serial.println("Failed to open file for reading");
-    return;
-  }
-  
-  UDP.beginPacket(TARGET_IP, UDP_PORT);
-  while(file.available()){
-
-    file.size();
-
-    file.readBytes(idbuff, file.size());
-
-    memcpy( idchar, &idbuff[3], 4 );
-    idchar[4] = '\0';
-
-    unsigned int idval;
-    sscanf(idchar, "%d", &idval);
-
-    UDP.write("Configured device id: ");
-    UDP.write(idchar);
-
-    Serial.print("Configured device id: ");
-    Serial.println(idchar);
-
-    // UDP.write(file.read());
-  }
-  file.close();
-  UDP.endPacket();
-  delay(250);
 
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
