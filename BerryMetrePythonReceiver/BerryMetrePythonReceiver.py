@@ -43,6 +43,7 @@ import berryconfig # berryconfig contains a class with configuration:
 #     mode = 'udp'                                # udp or serial
 #     showQrCode = False                          # show QR code as option if you do not want to print the sticker
 #     fullscreen = False
+#     saveCsv = False                             # Save CSV measurement data
 #     printrendertime = False
 #     printSticker = False
 #     uploadToGoogle = False
@@ -89,6 +90,7 @@ mode = config.mode
 fullscreen = config.fullscreen
 printrendertime = config.printrendertime
 printSticker = config.printSticker
+saveCsv = config.saveCsv
 uploadToGoogle = config.uploadToGoogle
 tweetResult = config.tweetResult
 showQrCode = config.showQrCode
@@ -309,6 +311,7 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
 
     htmlFileOut = "out/" + fileTimeStamp + ".html"
     htmlFileName = "" + fileTimeStamp + ".html"
+    csvFileName = "" + fileTimeStamp + ".csv"
 
     if tweetResult == True and uploadToGoogle == False:
         print('Tweet the result!')
@@ -328,7 +331,10 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
         print(status.text)
     if tweetResult == False and uploadToGoogle == True:
         print('Point QR code to google, not tweet!')
-        qrString = 'my.berrycells.com/' + htmlFileName
+        if saveCsv == False:
+            qrString = 'my.berrycells.com/' + htmlFileName
+        else:
+            qrString = 'my.berrycells.com/' + csvFileName
         print(qrString)
     if uploadToGoogle == False and tweetResult == False:
         print('Point QR Code to berrycells.com!')
@@ -377,11 +383,20 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
         htmlOut.close()
         print("Saved html file!")
 
+    if (saveCsv):
+        with open(csvFileOut, 'w') as csvFile:
+            csvFile.write('Voltage,' + ','.join(map(str,voltage)) + '\n')
+            csvFile.write('Current,' + ','.join(map(str,current)) + '\n')
+            csvFile.write('Power,' + ','.join(map(str,power)))
+            csvFile.close()
 
     if uploadToGoogle == True:
+        print("Skip upload to google for debugging")
         upload_blob("my.berrycells.com", imagePngOut, imagePngFileName)
         upload_blob("my.berrycells.com", htmlFileOut, htmlFileName)
         upload_blob("my.berrycells.com", stickerFileOut, stickerFileName)
+        if saveCsv == True:
+            upload_blob("my.berrycells.com", csvFileOut, csvFileName)
 
     if printSticker == True:
         printQueue.put((stickerFileOut, cellNumber))
@@ -949,6 +964,7 @@ while (True):
 
             imagePngOut = "out/" + fileTimeStamp + ".png"
             stickerFileOut = "out/" + fileTimeStamp + "-sticker.png"
+            csvFileOut = "out/" + fileTimeStamp + ".csv"
 
             fig.canvas.flush_events()
             plt.savefig(imagePngOut)
