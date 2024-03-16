@@ -115,8 +115,10 @@ if printerType == 'brother':
     # Read other logos, no need to resize
     summerScienceLogo = Image.open('res/NewcastleUniversityLogoBR732.png')
     berrySolarLogo = Image.open('res/BerrySolarLogo732.png')
-#    nclBottomLogo = Image.open('res/150YearsSageLogo732.png')
+    # nclBottomLogo = Image.open('res/150YearsSageLogo732.png')
     nclBottomLogo = Image.open('res/RS_black_halftext_732.png')
+    # nclBottomLogo = Image.open('res/Beamish_black_halftext_732.png')
+
     qrberry = Image.open('res/qrberryred.png')
 
 if printerType == 'peripage':
