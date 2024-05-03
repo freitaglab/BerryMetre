@@ -16,7 +16,6 @@ import queue
 import qrcode
 import json
 # import ppa6
-import twitter
 from google.cloud import storage
 import serial
 import requests
@@ -28,12 +27,6 @@ import brother_ql
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
 import logging
-import berrytwitter # berrytwitter contains class with Twitter credentials:
-#class TwitterConfiguration():
-#    consumer_key=''
-#    consumer_secret=''
-#    access_token_key=''
-#    access_token_secret=''
 import berryconfig # berryconfig contains a class with configuration:
 # class BerryConfiguration():
 #     deviceid = 17                               # Device id; only packages coming from this id will be processed
@@ -47,7 +40,6 @@ import berryconfig # berryconfig contains a class with configuration:
 #     printrendertime = False
 #     printSticker = False
 #     uploadToGoogle = False
-#     tweetResult = False
 #     usemovingaverage = False
 #     mavalues = 3                                # How many values to consider for moving average
 #     udptimeout = 10.0                           # depends on dwell time
@@ -78,7 +70,7 @@ if not os.path.exists('out'):
 
 # ToDo:
 # - Remove interpolation line?
-# - Keyboard interaction for output (Twitter, Print, etc)
+# - Keyboard interaction for output (Print, etc)
 # - Fix serial in multithreaded application
 # - Make configuration and code more modular
 # - Autoscale axis, or at least some calibration step for scaling
@@ -92,7 +84,6 @@ printrendertime = config.printrendertime
 printSticker = config.printSticker
 saveCsv = config.saveCsv
 uploadToGoogle = config.uploadToGoogle
-tweetResult = config.tweetResult
 showQrCode = config.showQrCode
 # printIVcurve = False
 USEMOVINGAVERAGE = config.usemovingaverage
@@ -199,7 +190,6 @@ UDP_PORT = 6819             # If you change this, you need to reconfigure the mi
 prevCount = 0
 
 saveImageNow = False
-tweetImageNow = False
 processNewPackage = False
 processSocialAction = False
 printQueue = queue.Queue()
@@ -315,30 +305,14 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
     htmlFileName = "" + fileTimeStamp + ".html"
     csvFileName = "" + fileTimeStamp + ".csv"
 
-    if tweetResult == True and uploadToGoogle == False:
-        print('Tweet the result!')
-        media_id = twitterApi.UploadMediaSimple(imagePngOut)
-        status = twitterApi.PostUpdate(status='I made a berry solar cell and here is the power profile!', media=media_id)
-        qrString = status.media[0].url
-        print(qrString)
-        print(status.text)
-    if tweetResult == True and uploadToGoogle == True:
-        print('Tweet the result!')
-        media_id = twitterApi.UploadMediaSimple(imagePngOut)
-        berryCellLink = 'https://my.berrycells.com/' + htmlFileName
-        statusText = 'I made a berry solar cell and this is the power profile! Find out how I made it: ' + berryCellLink
-        status = twitterApi.PostUpdate(status=statusText, media=media_id)
-        qrString = status.media[0].url
-        print(qrString)
-        print(status.text)
-    if tweetResult == False and uploadToGoogle == True:
-        print('Point QR code to google, not tweet!')
+    if uploadToGoogle == True:
+        print('Point QR code to google')
         if saveCsv == False:
             qrString = 'my.berrycells.com/' + htmlFileName
         else:
             qrString = 'my.berrycells.com/' + csvFileName
         print(qrString)
-    if uploadToGoogle == False and tweetResult == False:
+    if uploadToGoogle == False:
         print('Point QR Code to berrycells.com!')
         qrString = 'https://www.berrycells.com'
 
@@ -506,7 +480,6 @@ class ProcessUDP(threading.Thread):
 
 def on_press(key):
     global saveImageNow
-    global tweetImageNow
     global toggleFullscreen
     # global drawPowerArea
     try:
@@ -520,8 +493,6 @@ def on_press(key):
             saveImageNow = True
         if key.char == 'p':
             print("Print sticker!")
-        if key.char == 't':
-            print("Tweet the image!")
         if key.char == 'g':
             print("Upload image to google!")
     except:
@@ -610,7 +581,6 @@ maxPowerAnnotation = ax.annotate(
 #     'Please start measurement', xy=(1,1), xytext=(1,1),
 #     arrowprops = {'arrowstyle': "->"}
 # )
-
 
 # Placeholder annotation for cell measurement counter
 cellInfoAnnotation = axQ.annotate(
@@ -720,14 +690,6 @@ threading.Thread(target=printQueueWorker, daemon=True).start()
 stimeout = True
 dataprocessed = False
 # absruntime = datetime.datetime.now() - datetime.datetime.now()
-
-tw = berrytwitter.TwitterConfiguration
-
-twitterApi = twitter.Api(consumer_key=tw.consumer_key,
-                  consumer_secret=tw.consumer_secret,
-                  access_token_key=tw.access_token_key,
-                  access_token_secret=tw.access_token_secret,
-                  sleep_on_rate_limit=True)
 
 while (True):
     # render = True
@@ -987,22 +949,6 @@ while (True):
             # sclAction = threading.Thread(target=SocialActionFunction, args=('testfilename'))
             # sclAction.start()
 
-
-            # if tweetResult == True:
-            #     print('Tweet the result!')
-            #     media_id = twitterApi.UploadMediaSimple(imagePngOut)
-            #     status = twitterApi.PostUpdate(status='We love dye cells!', media=media_id)
-            #     qrString = status.media[0].url
-            #     print(qrString)
-            #     print(status.text)
-            # if uploadToGoogle == True and tweetResult == False:
-            #     print('Point QR code to google, not tweet!')
-            #     qrString = 'www.berrycells.com/' + htmlFileName
-            #     print(qrString)
-            # if uploadToGoogle == False and tweetResult == False:
-            #     print('Point QR Code to freitaglab.com!')
-            #     qrString = 'https://www.freitaglab.com'
-
             # qrberry = Image.open('res/qrberry.png')
             # print(qrberry.size)
             # qr_big = qrcode.QRCode(
@@ -1110,10 +1056,6 @@ while (True):
         #     print(im_res.size[1])
         #     # im_res.show()
 
-        #     twitterLeft = Image.open('TwitterLeft.png')
-        #     im_res = get_concat_h(twitterLeft, im_res)
-
-
         #     im_res.save(printFile, quality=100)
         #     scaleWidth = 576
         #     # Scale figure
@@ -1123,25 +1065,11 @@ while (True):
         #     # print("Figure size:", im_res.size)
         #     # width = im_res.size[0]
 
-        #     if tweetResult == True:
-        #         print('Tweet the result!')
-        #         media_id = twitterApi.UploadMediaSimple(imagePng)
-        #         status = twitterApi.PostUpdate(status='We love dye cells!', media=media_id)
-        #         qrString = status.media[0].url
-        #         print(qrString)
-        #         print(status.text)
         #     if uploadToGoogle == True:
         #         print('Upload to google!')
         #         fileTimeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") 
         #         blobName = fileTimeStamp + ".png"
         #         blobNameSticker = fileTimeStamp + "-sticker.png"
-        #     if uploadToGoogle == True and tweetResult == False:
-        #         print('Point QR code to google, not tweet!')
-        #         qrString = 'www.berrycells.com/' + blobName
-        #         print(qrString)
-        #     if uploadToGoogle == False and tweetResult == False:
-        #         print('Point QR Code to freitaglab.com!')
-        #         qrString = 'https://www.freitaglab.com'
 
         #     # qrimg = qrcode.make(qrString)
         #     # qrimg = qrimg.resize((width,width))
