@@ -27,6 +27,7 @@ import os
 import brother_ql
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
+from webdav3.client import Client
 import logging
 import berrytwitter # berrytwitter contains class with Twitter credentials:
 #class TwitterConfiguration():
@@ -44,6 +45,9 @@ import berryconfig # berryconfig contains a class with configuration:
 #     showQrCode = False                          # show QR code as option if you do not want to print the sticker
 #     fullscreen = False
 #     saveCsv = False                             # Save CSV measurement data
+#     liveCsv = False                             # Continuously save the csv file
+#     ignoreKeypress = False                      # Ignore keyboard events
+#     uploadToSunetDrive = False                  # Upload live.csv to Sunet Drive via webdav
 #     printrendertime = False
 #     printSticker = False
 #     uploadToGoogle = False
@@ -91,6 +95,9 @@ fullscreen = config.fullscreen
 printrendertime = config.printrendertime
 printSticker = config.printSticker
 saveCsv = config.saveCsv
+liveCsv = config.liveCsv
+ignoreKeypress = config.ignoreKeypress
+uploadToSunetDrive = config.uploadToSunetDrive
 uploadToGoogle = config.uploadToGoogle
 tweetResult = config.tweetResult
 showQrCode = config.showQrCode
@@ -186,8 +193,8 @@ for i in range(msr+1):
     nullinfo = nullinfo+"0,"
 nullinfo = nullinfo[:-1]
 
-# Scale power axis on right
-POWERSCALE = 0.5
+# Scale power axis on right - This should be fixed at some point
+POWERSCALE = 1.0
 
 xmax = config.xmax
 ymax = config.ymax
@@ -273,6 +280,44 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     #         source_file_name, destination_blob_name
     #     )
     # )
+
+class LiveCsv(threading.Thread):
+    def __init__(self, name):
+        threading.Thread.__init__(self)
+        self.name = name
+        if uploadToSunetDrive == True:
+            nodeuser = os.environ.get('Nxuser')
+            nodepwd = os.environ.get('Nxpassword')
+            baseurl = os.environ.get('Nxurl')
+            url = str(baseurl) + '/remote.php/dav/files/' + str(nodeuser) + '/'
+
+            if nodeuser == None or nodepwd == None or url == None:
+                print(f'Please set all environment variables Nxuser, Nxpassword, Nxurl')
+
+            # nodeuser = "tnc_user"
+            # nodepwd = "gXqax-F79EX-P7sRY-qPgYw-mtSw5"
+            # url = 'https://sunet.drive.test.sunet.se/remote.php/dav/files/' + nodeuser + '/'
+            options = {
+            'webdav_hostname': url,
+            'webdav_login' : nodeuser,
+            'webdav_password' : nodepwd,
+            'webdav_timeout': 30
+            }
+            self.client = Client(options)
+
+    def run(self):
+        while True:
+            time.sleep(15)
+            try:
+                with open('live.csv', 'w') as csvFile:
+                    csvFile.write('Voltage,' + ','.join(map(str,voltage)) + '\n')
+                    csvFile.write('Current,' + ','.join(map(str,current)) + '\n')
+                    csvFile.write('Power,' + ','.join(map(str,power)))
+                    csvFile.close()
+                if uploadToSunetDrive == True:
+                    self.client.upload_sync(remote_path='TNC24Demo/live.csv', local_path='live.csv')
+            except:
+                print(f'Error in live csv thread')
 
 class ProcessSerial(threading.Thread):
     def __init__(self, name):
@@ -512,18 +557,20 @@ def on_press(key):
     try:
         # print('Alphanumeric key pressed: {0} '.format(
         #     key.char))
-        if key.char == 'n':
-            print("Prepare for new save!")
-            # drawPowerArea = not drawPowerArea
-        if key.char == 's':
-            print("Save image!")
-            saveImageNow = True
-        if key.char == 'p':
-            print("Print sticker!")
-        if key.char == 't':
-            print("Tweet the image!")
-        if key.char == 'g':
-            print("Upload image to google!")
+        # We ignore keypress for now if we do live csv files
+        if ignoreKeypress == False:
+            if key.char == 'n':
+                print("Prepare for new save!")
+                # drawPowerArea = not drawPowerArea
+            if key.char == 's':
+                print("Save image!")
+                saveImageNow = True
+            if key.char == 'p':
+                print("Print sticker!")
+            if key.char == 't':
+                print("Tweet the image!")
+            if key.char == 'g':
+                print("Upload image to google!")
     except:
         nothing = 0
         # print('special key pressed: {0}'.format(
@@ -667,6 +714,9 @@ if mode == 'serial':
 if mode == 'udp':
     a = ProcessUDP("UdpThread")
     a.start()
+if liveCsv == True:
+    lvCsv = LiveCsv("LiveCsvThread")
+    lvCsv.start()
 # a.join()
 
 # Start broadcasting the global cell counter
@@ -878,6 +928,7 @@ while (True):
 
             xpos = newx[maxindex]
             maxpower = newpy.max()
+            # Current at MPP
             maxcurrent = newiy[maxindex]
 
             mpp.set_xdata(xpos)
