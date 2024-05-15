@@ -294,9 +294,6 @@ class LiveCsv(threading.Thread):
             if nodeuser == None or nodepwd == None or url == None:
                 print(f'Please set all environment variables Nxuser, Nxpassword, Nxurl')
 
-            # nodeuser = "tnc_user"
-            # nodepwd = "gXqax-F79EX-P7sRY-qPgYw-mtSw5"
-            # url = 'https://sunet.drive.test.sunet.se/remote.php/dav/files/' + nodeuser + '/'
             options = {
             'webdav_hostname': url,
             'webdav_login' : nodeuser,
