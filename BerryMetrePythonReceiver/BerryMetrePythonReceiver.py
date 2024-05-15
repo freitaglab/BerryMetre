@@ -649,7 +649,7 @@ mpp, = ax.plot(1,1, color= mppcolor, marker='o', animated = True)
 filler = ax.fill_between(x, py, color = 'black')
 
 maxPowerAnnotation = ax.annotate(
-    'Max. Power', xy=(10,10), xytext=(10,10),
+    'MPP', xy=(10,10), xytext=(10,10),
     arrowprops = {'arrowstyle': "->"}, size=FONTSIZE
 )
 
@@ -939,7 +939,7 @@ while (True):
             # else:
             #     ax.set_ylim([0, 1.7])
 
-            maxPowerAnnotation.set_position((xpos,maxpower+0.1*ymax))
+            maxPowerAnnotation.set_position((xpos,maxpower-0.1*ymax))
             maxPowerAnnotation.xy = (xpos,maxpower)
 
             # print("Max power: ", maxpower)
