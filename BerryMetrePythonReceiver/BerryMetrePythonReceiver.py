@@ -16,7 +16,6 @@ import queue
 import qrcode
 import json
 # import ppa6
-import twitter
 from google.cloud import storage
 import serial
 import requests
@@ -29,12 +28,6 @@ from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
 from webdav3.client import Client
 import logging
-import berrytwitter # berrytwitter contains class with Twitter credentials:
-#class TwitterConfiguration():
-#    consumer_key=''
-#    consumer_secret=''
-#    access_token_key=''
-#    access_token_secret=''
 import berryconfig # berryconfig contains a class with configuration:
 # class BerryConfiguration():
 #     deviceid = 17                               # Device id; only packages coming from this id will be processed
@@ -51,7 +44,6 @@ import berryconfig # berryconfig contains a class with configuration:
 #     printrendertime = False
 #     printSticker = False
 #     uploadToGoogle = False
-#     tweetResult = False
 #     usemovingaverage = False
 #     mavalues = 3                                # How many values to consider for moving average
 #     udptimeout = 10.0                           # depends on dwell time
@@ -82,7 +74,7 @@ if not os.path.exists('out'):
 
 # ToDo:
 # - Remove interpolation line?
-# - Keyboard interaction for output (Twitter, Print, etc)
+# - Keyboard interaction for output (Publish, Print, etc)
 # - Fix serial in multithreaded application
 # - Make configuration and code more modular
 # - Autoscale axis, or at least some calibration step for scaling
@@ -99,7 +91,6 @@ liveCsv = config.liveCsv
 ignoreKeypress = config.ignoreKeypress
 uploadToSunetDrive = config.uploadToSunetDrive
 uploadToGoogle = config.uploadToGoogle
-tweetResult = config.tweetResult
 showQrCode = config.showQrCode
 # printIVcurve = False
 USEMOVINGAVERAGE = config.usemovingaverage
@@ -206,7 +197,6 @@ UDP_PORT = 6819             # If you change this, you need to reconfigure the mi
 prevCount = 0
 
 saveImageNow = False
-tweetImageNow = False
 processNewPackage = False
 processSocialAction = False
 printQueue = queue.Queue()
@@ -357,30 +347,14 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
     htmlFileName = "" + fileTimeStamp + ".html"
     csvFileName = "" + fileTimeStamp + ".csv"
 
-    if tweetResult == True and uploadToGoogle == False:
-        print('Tweet the result!')
-        media_id = twitterApi.UploadMediaSimple(imagePngOut)
-        status = twitterApi.PostUpdate(status='I made a berry solar cell and here is the power profile!', media=media_id)
-        qrString = status.media[0].url
-        print(qrString)
-        print(status.text)
-    if tweetResult == True and uploadToGoogle == True:
-        print('Tweet the result!')
-        media_id = twitterApi.UploadMediaSimple(imagePngOut)
-        berryCellLink = 'https://my.berrycells.com/' + htmlFileName
-        statusText = 'I made a berry solar cell and this is the power profile! Find out how I made it: ' + berryCellLink
-        status = twitterApi.PostUpdate(status=statusText, media=media_id)
-        qrString = status.media[0].url
-        print(qrString)
-        print(status.text)
-    if tweetResult == False and uploadToGoogle == True:
-        print('Point QR code to google, not tweet!')
+    if uploadToGoogle == True:
+        print('Point QR code to google')
         if saveCsv == False:
             qrString = 'my.berrycells.com/' + htmlFileName
         else:
             qrString = 'my.berrycells.com/' + csvFileName
         print(qrString)
-    if uploadToGoogle == False and tweetResult == False:
+    if uploadToGoogle == False:
         print('Point QR Code to berrycells.com!')
         qrString = 'https://www.berrycells.com'
 
@@ -548,7 +522,6 @@ class ProcessUDP(threading.Thread):
 
 def on_press(key):
     global saveImageNow
-    global tweetImageNow
     global toggleFullscreen
     # global drawPowerArea
     try:
@@ -564,8 +537,6 @@ def on_press(key):
                 saveImageNow = True
             if key.char == 'p':
                 print("Print sticker!")
-            if key.char == 't':
-                print("Tweet the image!")
             if key.char == 'g':
                 print("Upload image to google!")
     except:
@@ -767,14 +738,6 @@ threading.Thread(target=printQueueWorker, daemon=True).start()
 stimeout = True
 dataprocessed = False
 # absruntime = datetime.datetime.now() - datetime.datetime.now()
-
-tw = berrytwitter.TwitterConfiguration
-
-twitterApi = twitter.Api(consumer_key=tw.consumer_key,
-                  consumer_secret=tw.consumer_secret,
-                  access_token_key=tw.access_token_key,
-                  access_token_secret=tw.access_token_secret,
-                  sleep_on_rate_limit=True)
 
 while (True):
     # render = True
@@ -1035,88 +998,6 @@ while (True):
             # sclAction = threading.Thread(target=SocialActionFunction, args=('testfilename'))
             # sclAction.start()
 
-
-            # if tweetResult == True:
-            #     print('Tweet the result!')
-            #     media_id = twitterApi.UploadMediaSimple(imagePngOut)
-            #     status = twitterApi.PostUpdate(status='We love dye cells!', media=media_id)
-            #     qrString = status.media[0].url
-            #     print(qrString)
-            #     print(status.text)
-            # if uploadToGoogle == True and tweetResult == False:
-            #     print('Point QR code to google, not tweet!')
-            #     qrString = 'www.berrycells.com/' + htmlFileName
-            #     print(qrString)
-            # if uploadToGoogle == False and tweetResult == False:
-            #     print('Point QR Code to freitaglab.com!')
-            #     qrString = 'https://www.freitaglab.com'
-
-            # qrberry = Image.open('res/qrberry.png')
-            # print(qrberry.size)
-            # qr_big = qrcode.QRCode(
-            #     error_correction=qrcode.constants.ERROR_CORRECT_H
-            # )
-            # qr_big.add_data(qrString)
-            # qr_big.make()
-            # img_qr_big = qr_big.make_image().convert('RGB')
-
-            # pos = ((img_qr_big.size[0] - qrberry.size[0]) // 2, (img_qr_big.size[1] - qrberry.size[1]) // 2)
-
-            # img_qr_big.paste(qrberry, pos)
-            # img_qr_big = img_qr_big.resize((scaleWidth,scaleWidth))
-            # img_qr_big.save(qrFileOut)
-
-            # # Read other logos, no need to resize
-            # summerScienceLogo = Image.open('res/SummerScienceLogo.png')
-            # berrySolarLogo = Image.open('res/BerrySolarLogo.png')
-            # nclBottomLogo = Image.open('res/NCLRoyalSocietyBottomLogo.png')
-
-            # # Concatenate what we just created in right order
-
-            # final = get_concat_v(berrySolarLogo, img_qr_big)
-            # final = get_concat_v(final, summerScienceLogo)
-            # # final = get_concat_v(final, berrySolarLogo)
-            # # if printIVcurve == True:
-            # #     final = get_concat_v(final, im_res)
-            # final = get_concat_v(final, nclBottomLogo)
-
-            # # black border around image
-            # final = ImageOps.expand(final,border=24,fill='black')
-
-            # # Resize again. Can be avoided by making the template images 2*border pixels smaller
-            # # Scale figure
-            # newheight = int(final.size[1]/(final.size[0]/scaleWidth))
-            # final = final.resize((scaleWidth,newheight))
-
-            # final.save(stickerFileOut)
-            # print("Saving figure...")
-
-            # with open ("res/mycelltemplate.html", "r") as myfile:
-            #     data=myfile.read()
-            #     data = data.replace("$IMAGE$",imagePngFileName)
-            #     htmlOut = open(htmlFileOut, "w")
-            #     n = htmlOut.write(data)
-            #     htmlOut.close()
-            #     print("Saved html file!")
-
-
-            # if uploadToGoogle == True:
-            #     upload_blob("www.berrycells.com", imagePngOut, imagePngFileName)
-            #     upload_blob("www.berrycells.com", htmlFileOut, htmlFileName)
-            #     upload_blob("www.berrycells.com", stickerFileOut, stickerFileName)
-
-            # if printSticker == True:
-            #     printer = ppa6.Printer(printerMac, ppa6.PrinterType.A6p)
-            #     printer.connect()
-            #     printer.reset()
-            #     printer.setConcentration(2)
-            #     printer.printBreak(25)
-            #     printer.printImage(final)
-            #     printer.printBreak(25)
-            #     printer.disconnect()
-            # else:
-            #     final.show()
-
     elif info == "SAVE" and stimeout == False:
         print("Network save request!")
         info = ""
@@ -1129,143 +1010,3 @@ while (True):
         bigSticker = True
         saveImageNow = True
         dataprocessed = True
-
-    # elif info != nullinfo and info != "":
-    #     print("Other: " + info)
-    #     dataprocessed = True
-
-# ToDo: Move this to own functions
-        # if imagesaved == True:
-        # #     imagesaved = True
-        #     at.set_text("")
-        #     filler = ax.fill_between((0,xpos),(maxcurrent,maxcurrent), color = powerfillcolor, alpha = 0)
-
-        #     ax.draw_artist(filler)
-
-        #     fig.canvas.blit(fig.bbox)
-        #     fig.canvas.flush_events()
-
-        #     imagePng = "figure.png"
-        #     printFile = "print.png"
-        #     finalFile = "final.png"
-        #     plt.savefig(imagePng)
-
-        #     # Read figure and transform to one color b/w
-        #     im = Image.open(imagePng)
-        #     im_res = ImageOps.invert(im.convert('RGB'))
-        #     im_res = ImageOps.grayscale(im_res)
-        #     im_res = ImageOps.colorize(im_res,  'black', 'white', blackpoint=253, whitepoint=254)
-        #     print(im_res.size[1])
-        #     # im_res.show()
-
-        #     twitterLeft = Image.open('TwitterLeft.png')
-        #     im_res = get_concat_h(twitterLeft, im_res)
-
-
-        #     im_res.save(printFile, quality=100)
-        #     scaleWidth = 576
-        #     # Scale figure
-        #     newheight = int(im_res.size[1]/(im_res.size[0]/scaleWidth))
-        #     im_res = im_res.resize((scaleWidth,newheight))
-
-        #     # print("Figure size:", im_res.size)
-        #     # width = im_res.size[0]
-
-        #     if tweetResult == True:
-        #         print('Tweet the result!')
-        #         media_id = twitterApi.UploadMediaSimple(imagePng)
-        #         status = twitterApi.PostUpdate(status='We love dye cells!', media=media_id)
-        #         qrString = status.media[0].url
-        #         print(qrString)
-        #         print(status.text)
-        #     if uploadToGoogle == True:
-        #         print('Upload to google!')
-        #         fileTimeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") 
-        #         blobName = fileTimeStamp + ".png"
-        #         blobNameSticker = fileTimeStamp + "-sticker.png"
-        #     if uploadToGoogle == True and tweetResult == False:
-        #         print('Point QR code to google, not tweet!')
-        #         qrString = 'www.berrycells.com/' + blobName
-        #         print(qrString)
-        #     if uploadToGoogle == False and tweetResult == False:
-        #         print('Point QR Code to freitaglab.com!')
-        #         qrString = 'https://www.freitaglab.com'
-
-        #     # qrimg = qrcode.make(qrString)
-        #     # qrimg = qrimg.resize((width,width))
-        #     # qrimg.save("qr.png")
-
-        #     qrberry = Image.open('qrberry.png')
-        #     print(qrberry.size)
-        #     qr_big = qrcode.QRCode(
-        #         error_correction=qrcode.constants.ERROR_CORRECT_H
-        #     )
-        #     qr_big.add_data(qrString)
-        #     qr_big.make()
-        #     img_qr_big = qr_big.make_image().convert('RGB')
-
-        #     pos = ((img_qr_big.size[0] - qrberry.size[0]) // 2, (img_qr_big.size[1] - qrberry.size[1]) // 2)
-
-        #     img_qr_big.paste(qrberry, pos)
-        #     img_qr_big = img_qr_big.resize((scaleWidth,scaleWidth))
-        #     img_qr_big.save('qr.png')
-
-        #     # Read other logos, no need to resize
-        #     summerScienceLogo = Image.open('SummerScienceLogo.png')
-        #     berrySolarLogo = Image.open('BerrySolarLogo.png')
-        #     nclBottomLogo = Image.open('NCLRoyalSocietyBottomLogo.png')
-
-        #     # Concatenate what we just created in right order
-
-        #     final = get_concat_v(berrySolarLogo, img_qr_big)
-        #     final = get_concat_v(final, summerScienceLogo)
-        #     # final = get_concat_v(final, berrySolarLogo)
-        #     if printIVcurve == True:
-        #         final = get_concat_v(final, im_res)
-        #     final = get_concat_v(final, nclBottomLogo)
-
-        #     # black border around image
-        #     final = ImageOps.expand(final,border=24,fill='black')
-
-        #     # Resize again. Can be avoided by making the template images 2*border pixels smaller
-        #     # Scale figure
-        #     newheight = int(final.size[1]/(final.size[0]/scaleWidth))
-        #     final = final.resize((scaleWidth,newheight))
-
-        #     final.save(finalFile)
-        #     print("Saving figure...")
-
-        #     if uploadToGoogle == True:
-        #         upload_blob("www.berrycells.com", "figure.png", blobName)
-        #         upload_blob("www.berrycells.com", "final.png", blobNameSticker)
-
-        #     if printSticker == True:
-        #         printer = ppa6.Printer(printerMac, ppa6.PrinterType.A6p)
-        #         printer.connect()
-        #         printer.reset()
-        #         printer.setConcentration(2)
-        #         printer.printBreak(25)
-        #         printer.printImage(final)
-        #         printer.printBreak(25)
-        #     else:
-        #         final.show()
-
-# End move this to functions!
-            # for axis in ['top','bottom','left','right']:
-            #     ax.spines[axis].set_linewidth(16)
-
-            # bg = fig.canvas.copy_from_bbox(fig.bbox)
-
-
-        # input("Press Enter to continue...")
-
-        # clear out pending datagrams to speed up processing
-        # if ready[0]:
-        #     data, addr = sock.recvfrom(64)
-        #     fig.canvas.flush_events()
-
-
-        #     print("Skipped datagram")        
-
-    # else:
-    #     print("Skip processing...")
