@@ -91,7 +91,6 @@ liveCsv = config.liveCsv
 ignoreKeypress = config.ignoreKeypress
 uploadToSunetDrive = config.uploadToSunetDrive
 publishWithRDS = config.publishWithRDS
-publishWithRDS = config.publishWithRDS
 publicationScript = config.publicationScript
 doifile = config.doifile
 uploadToGoogle = config.uploadToGoogle
@@ -363,6 +362,31 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
         print('Point QR Code to berrycells.com!')
         qrString = 'https://www.berrycells.com'
 
+    if publishWithRDS == True:
+        print(f'Publish with RDS')
+        cmd='python ' + publicationScript
+        print(f'Execute publication script: {cmd}')
+        os.system("python " + publicationScript)
+
+        while not os.path.exists(doifile):
+            print(f'File not there (yet)')
+            time.sleep(1)
+
+        if os.path.isfile(doifile):
+            f = open(doifile, "r")
+            qrString = f.read()
+            print(f'Dataset published to: {qrString}')
+        else:
+            qrString = 'https://www.berrycells.com'
+            print(f'Error getting doi URL from file')
+
+        while os.path.isfile(doifile) == False:
+            print(f'Waiting for file containing DOI URL')
+            time.sleep(5)
+        f = open(doifile, "r")
+        qrString = f.read()
+        print(f'Dataset published to: {qrString}')
+
     print(qrberry.size)
     qr_big = qrcode.QRCode(
         error_correction=qrcode.constants.ERROR_CORRECT_H
@@ -426,32 +450,6 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
     
     if showQrCode == True:
         final.show()
-
-    if publishWithRDS == True:
-        print(f'Publish with RDS')
-        cmd='python ' + publicationScript
-        print(f'Execute publication script: {cmd}')
-        os.system("python " + publicationScript)
-
-        while not os.path.exists(doifile):
-            print(f'File not there (yet)')
-            time.sleep(1)
-
-        if os.path.isfile(doifile):
-            f = open(doifile, "r")
-            qrString = f.read()
-            print(f'Dataset published to: {qrString}')
-        else:
-            qrString = 'https://www.berrycells.com'
-            print(f'Error getting doi URL from file')
-
-        while os.path.isfile(doifile) == False:
-            print(f'Waiting for file containing DOI URL')
-            time.sleep(5)
-        f = open(doifile, "r")
-        qrString = f.read()
-        print(f'Dataset published to: {qrString}')
-
 
 # class ProcessSocialAction(threading.Thread):
 #     def __init__(self, name):
