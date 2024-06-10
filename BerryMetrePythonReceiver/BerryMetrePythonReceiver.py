@@ -90,6 +90,10 @@ saveCsv = config.saveCsv
 liveCsv = config.liveCsv
 ignoreKeypress = config.ignoreKeypress
 uploadToSunetDrive = config.uploadToSunetDrive
+publishWithRDS = config.publishWithRDS
+publishWithRDS = config.publishWithRDS
+publicationScript = config.publicationScript
+doifile = config.doifile
 uploadToGoogle = config.uploadToGoogle
 showQrCode = config.showQrCode
 # printIVcurve = False
@@ -105,7 +109,7 @@ printerType = config.printerType        # peripage or brother
 
 bigSticker = False
 
-ncllogoyoffset=0.7
+ncllogoyoffset=0.65
 
 # TODO: Rename variables for proper order!
 if printerType == 'brother':
@@ -114,8 +118,9 @@ if printerType == 'brother':
     summerScienceLogo = Image.open('res/NewcastleUniversityLogoBR732.png')
     berrySolarLogo = Image.open('res/BerrySolarLogo732.png')
     # nclBottomLogo = Image.open('res/150YearsSageLogo732.png')
-    nclBottomLogo = Image.open('res/RS_black_halftext_732.png')
+    # nclBottomLogo = Image.open('res/RS_black_halftext_732.png')
     # nclBottomLogo = Image.open('res/Beamish_black_halftext_732.png')
+    nclBottomLogo = Image.open('res/tnc_sunet_732.png')
 
     qrberry = Image.open('res/qrberryred.png')
 
@@ -422,6 +427,32 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
     if showQrCode == True:
         final.show()
 
+    if publishWithRDS == True:
+        print(f'Publish with RDS')
+        cmd='python ' + publicationScript
+        print(f'Execute publication script: {cmd}')
+        os.system("python " + publicationScript)
+
+        while not os.path.exists(doifile):
+            print(f'File not there (yet)')
+            time.sleep(1)
+
+        if os.path.isfile(doifile):
+            f = open(doifile, "r")
+            qrString = f.read()
+            print(f'Dataset published to: {qrString}')
+        else:
+            qrString = 'https://www.berrycells.com'
+            print(f'Error getting doi URL from file')
+
+        while os.path.isfile(doifile) == False:
+            print(f'Waiting for file containing DOI URL')
+            time.sleep(5)
+        f = open(doifile, "r")
+        qrString = f.read()
+        print(f'Dataset published to: {qrString}')
+
+
 # class ProcessSocialAction(threading.Thread):
 #     def __init__(self, name):
 #         threading.Thread.__init__(self)
@@ -564,7 +595,7 @@ info = nullinfo
 plt.style.use('dark_background')
 logo = mpimage.imread('res/ncl3.png')
 
-imagebox = OffsetImage(logo, zoom=1.5)
+imagebox = OffsetImage(logo, zoom=1.0)
 
 fig, (ax, axQ) = plt.subplots(2, gridspec_kw={'height_ratios': [8, 1]}, constrained_layout=True)
 
@@ -668,7 +699,7 @@ for label in ax2.yaxis.get_majorticklabels():
 plt.show(block=False)
 plt.pause(0.1)
 
-bg = fig.canvas.copy_from_bbox(fig.bbox)
+# bg = fig.canvas.copy_from_bbox(fig.bbox)
 
 # ax = fig.add_subplot(111)
 
@@ -736,7 +767,7 @@ threading.Thread(target=printQueueWorker, daemon=True).start()
 # sclJob.start()
 
 stimeout = True
-dataprocessed = False
+dataprocessed = True
 # absruntime = datetime.datetime.now() - datetime.datetime.now()
 
 while (True):
@@ -752,8 +783,10 @@ while (True):
         )
 
         if dataprocessed == True:
-            infoAnnotation.set_text("Please restart measurement!")
+            # infoAnnotation.set_text("Please restart measurement!")
             saveImageNow = False
+            bg = fig.canvas.copy_from_bbox(fig.bbox)
+
         infoAnnotation.set_position((xmax/2 - 0.15*xmax , ymax/2))
         infoAnnotation.xy = (1,1)
         ax.draw_artist(infoAnnotation)
@@ -771,7 +804,6 @@ while (True):
     #     print("Empty values...")
 
     if info.count(',') == msr and stimeout == False:
-        # print(info)
         dataprocessed = True
         # print("Process new Package...")
         # render = False
@@ -886,8 +918,11 @@ while (True):
             maxindexvalues = np.where( newpy == newpy.max())
             maxindex = int(maxindexvalues[0][0])
 
-            xpos = newx[maxindex]
-            maxpower = newpy.max()
+            xpos = []
+            maxpower = []
+
+            xpos.append(newx[maxindex])
+            maxpower.append(newpy.max())
             # Current at MPP
             maxcurrent = newiy[maxindex]
 
@@ -899,8 +934,8 @@ while (True):
             # else:
             #     ax.set_ylim([0, 1.7])
 
-            maxPowerAnnotation.set_position((xpos,maxpower-0.1*ymax))
-            maxPowerAnnotation.xy = (xpos,maxpower)
+            maxPowerAnnotation.set_position((xpos[0],maxpower[0]-0.1*ymax))
+            maxPowerAnnotation.xy = (xpos[0],maxpower[0])
 
             # print("Max power: ", maxpower)
 
@@ -924,7 +959,7 @@ while (True):
             #     ax.draw_artist(filler)
             #     filler.remove()
 
-            filler = ax.fill_between((0,xpos),(maxcurrent,maxcurrent), color = powerfillcolor, alpha = 0.15)
+            filler = ax.fill_between((0,xpos[0]),(maxcurrent,maxcurrent), color = powerfillcolor, alpha = 0.15)
             ax.draw_artist(filler)
             filler.remove()
 
@@ -971,7 +1006,7 @@ while (True):
             ax.draw_artist(ab)
 
             # Draw filler once for printing
-            filler = ax.fill_between((0,xpos),(maxcurrent,maxcurrent), color = powerfillcolor, alpha = 0.15)
+            filler = ax.fill_between((0,xpos[0]),(maxcurrent,maxcurrent), color = powerfillcolor, alpha = 0.15)
             ax.draw_artist(filler)
             fileTimeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") 
 
