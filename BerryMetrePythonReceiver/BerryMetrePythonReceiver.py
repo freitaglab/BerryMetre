@@ -767,7 +767,7 @@ threading.Thread(target=printQueueWorker, daemon=True).start()
 stimeout = True
 dataprocessed = True
 # absruntime = datetime.datetime.now() - datetime.datetime.now()
-
+bgProcessed = False
 while (True):
     # render = True
     skipped = False
@@ -783,7 +783,6 @@ while (True):
         if dataprocessed == True:
             # infoAnnotation.set_text("Please restart measurement!")
             saveImageNow = False
-            bg = fig.canvas.copy_from_bbox(fig.bbox)
 
         infoAnnotation.set_position((xmax/2 - 0.15*xmax , ymax/2))
         infoAnnotation.xy = (1,1)
@@ -865,6 +864,11 @@ while (True):
             # print("new x: ", newx)
             # print("new py: ", newpy)
             # print("new iy: ", newiy)
+
+            if bgProcessed == False:
+                print('Process BG buffer')
+                bg = fig.canvas.copy_from_bbox(fig.bbox)
+                bgProcessed = True
 
             fig.canvas.restore_region(bg)
 
