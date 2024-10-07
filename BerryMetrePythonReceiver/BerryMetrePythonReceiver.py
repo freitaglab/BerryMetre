@@ -29,6 +29,7 @@ from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
 from webdav3.client import Client
 import logging
+import subprocess
 import berrytwitter # berrytwitter contains class with Twitter credentials:
 #class TwitterConfiguration():
 #    consumer_key=''
@@ -48,6 +49,9 @@ import berryconfig # berryconfig contains a class with configuration:
 #     liveCsv = False                             # Continuously save the csv file
 #     ignoreKeypress = False                      # Ignore keyboard events
 #     uploadToSunetDrive = False                  # Upload live.csv to Sunet Drive via webdav
+#     publishWithRDS = False                      # publish with RDS for TNC24
+#     publicationScript = "~/sunet/drive-tests/sandbox_tnc_publication.py"
+#     doifile = '~/sunet/drive-tests/tncdoi.txt'
 #     printrendertime = False
 #     printSticker = False
 #     uploadToGoogle = False
@@ -98,6 +102,9 @@ saveCsv = config.saveCsv
 liveCsv = config.liveCsv
 ignoreKeypress = config.ignoreKeypress
 uploadToSunetDrive = config.uploadToSunetDrive
+publishWithRDS = config.publishWithRDS
+publicationScript = config.publicationScript
+doifile = config.doifile
 uploadToGoogle = config.uploadToGoogle
 tweetResult = config.tweetResult
 showQrCode = config.showQrCode
@@ -194,7 +201,7 @@ for i in range(msr+1):
 nullinfo = nullinfo[:-1]
 
 # Scale power axis on right - This should be fixed at some point
-POWERSCALE = 1.0
+POWERSCALE = 10.0
 
 xmax = config.xmax
 ymax = config.ymax
@@ -291,7 +298,7 @@ class LiveCsv(threading.Thread):
             baseurl = os.environ.get('Nxurl')
             url = str(baseurl) + '/remote.php/dav/files/' + str(nodeuser) + '/'
 
-            if nodeuser == None or nodepwd == None or url == None:
+            if nodeuser == None or nodepwd == None or baseurl == None:
                 print(f'Please set all environment variables Nxuser, Nxpassword, Nxurl')
 
             options = {
@@ -313,8 +320,8 @@ class LiveCsv(threading.Thread):
                     csvFile.close()
                 if uploadToSunetDrive == True:
                     self.client.upload_sync(remote_path='TNC24Demo/live.csv', local_path='live.csv')
-            except:
-                print(f'Error in live csv thread')
+            except Exception as e:
+                print(f'Error in live csv thread: {e}')
 
 class ProcessSerial(threading.Thread):
     def __init__(self, name):
@@ -384,6 +391,31 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
         print('Point QR Code to berrycells.com!')
         qrString = 'https://www.berrycells.com'
 
+    if publishWithRDS == True:
+        print(f'Publish with RDS')
+        cmd='python ' + publicationScript
+        print(f'Execute publication script: {cmd}')
+        os.system("python " + publicationScript)
+
+        while not os.path.exists(doifile):
+            print(f'File not there (yet)')
+            time.sleep(1)
+
+        if os.path.isfile(doifile):
+            f = open(doifile, "r")
+            qrString = f.read()
+            print(f'Dataset published to: {qrString}')
+        else:
+            qrString = 'https://www.berrycells.com'
+            print(f'Error getting doi URL from file')
+
+        while os.path.isfile(doifile) == False:
+            print(f'Waiting for file containing DOI URL')
+            time.sleep(5)
+        f = open(doifile, "r")
+        qrString = f.read()
+        print(f'Dataset published to: {qrString}')
+
     print(qrberry.size)
     qr_big = qrcode.QRCode(
         error_correction=qrcode.constants.ERROR_CORRECT_H
@@ -440,7 +472,7 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
         upload_blob("my.berrycells.com", htmlFileOut, htmlFileName)
         upload_blob("my.berrycells.com", stickerFileOut, stickerFileName)
         if saveCsv == True:
-            upload_blob("my.berrycells.com", csvFileOut, csvFileName)
+            upload_blob("my.berrycells.com", csvFileOut, csvFileName)       
 
     if printSticker == True:
         printQueue.put((stickerFileOut, cellNumber))
@@ -828,7 +860,8 @@ while (True):
                 current[i] = (voltage[i]*1000/(res[i]+RSERIES)) / (1 + MAGICVA/voltage[i])
 
                 #current[i] = (voltage[i]*1000/(res[i]+RSERIES))
-                power[i] = voltage[i]*current[i]*POWERSCALE
+                # power[i] = voltage[i]*current[i]*POWERSCALE
+                power[i] = voltage[i]*current[i]
 
             # print("Voltage:\t", voltage)
             # print("Current:\t", current)
@@ -849,13 +882,12 @@ while (True):
                 # use moving average for fast changing measurements. E.g., silicon cell
                 if USEMOVINGAVERAGE == True:
                     newx[i] = moving_average(xm[i], MAVALUES)[0]+0.00001*i*random.random()
-                    newpy[i] = moving_average(pym[i], MAVALUES)[0]
+                    newpy[i] = moving_average(pym[i], MAVALUES)[0]*POWERSCALE
                     newiy[i] = moving_average(iym[i], MAVALUES)[0]
                 else:
                     newx[i] = voltage[i]+0.00001*i*random.random()
-                    newpy[i] = power[i]
+                    newpy[i] = power[i]*POWERSCALE
                     newiy[i] = current[i]
-
 
             # print("Vmax: ", newx.max())
             # print("Vmin: ", newx.min())
