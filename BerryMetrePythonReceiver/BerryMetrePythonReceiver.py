@@ -593,6 +593,7 @@ info = nullinfo
 
 # plt.ion()
 plt.style.use('dark_background')
+plt.rcParams['toolbar'] = 'None'
 logo = mpimage.imread('res/ncl3.png')
 
 imagebox = OffsetImage(logo, zoom=1.0)
