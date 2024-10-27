@@ -1,0 +1,191 @@
+- name: Update and upgrade all hosts in the inventory file
+  hosts: allhosts
+  tasks:
+    # - name: Use custom cmdline.txt
+    #   become: true
+    #   copy:
+    #     dest: /boot/firmware/cmdline.txt
+    #     src: ../overlay/boot/firmware/cmdline.txt
+
+    # - name: Use custom config.txt
+    #   become: true
+    #   copy:
+    #     dest: /boot/firmware/config.txt
+    #     src: ../overlay/boot/firmware/config.txt
+
+    - name: Update raspi.list with a local mirror
+      become: true
+      copy:
+        dest: /etc/apt/sources.list.d/raspi.list
+        src: ../overlay/etc/apt/sources.list.d/raspi.list
+
+    # - name: Import public key for update server
+    #   become: true
+    #   apt_key:
+    #     url: https://debian.bio.lmu.de/raspbian/raspbian.public.key
+    #     keyring: /etc/apt/trusted.gpg.d/debian.gpg
+
+    - name: Download lmu mirror certificate
+      get_url:
+        url: https://debian.bio.lmu.de/raspbian/raspbian.public.key
+        dest: /tmp/raspbian.public.key
+
+    - name: Configure lightdm autologin for berrycells user
+      become: true
+      command: apt-key add /tmp/raspbian.public.key
+  
+    - name: Update and upgrade apt packages
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400
+
+    - name: Install package dependencies
+      become: true
+      apt:
+        update_cache: yes
+        autoremove: yes
+        state: present
+        pkg:
+          - wtype
+          - lightdm
+          - fluxbox
+          - lxterminal
+          - x11-xserver-utils
+          - git
+          - python3-pip
+          - python3-virtualenv
+          - xterm
+          - libxcb-cursor0
+          - libxcb-icccm4
+          - libxcb-keysyms1
+          - libxcb-shape0
+          - libxcb-xkb1
+          - libxkbcommon-x11-0
+          - x11-utils
+
+    - name: "Set default to graphical target"
+      become: true
+      command: "systemctl set-default graphical.target"
+
+    - name: Configure autologin for berrycells user
+      become: true
+      copy:
+        dest: /etc/systemd/system/getty@tty1.service.d/autologin.conf
+        src: ../overlay/etc/systemd/system/getty@tty1.service.d/autologin.conf
+
+    - name: Configure lightdm autologin for berrycells user
+      become: true
+      command: sed /etc/lightdm/lightdm.conf -i -e "s/^\(#\|\)autologin-user=.*/autologin-user=berrycells/"
+
+    - name: Setup wifi hotspot for the berrymetre
+      become: true
+      command: nmcli device wifi hotspot ssid berrycells password berrysolarcells
+
+    - name: Setup wifi hotspot ip range
+      become: true
+      command: nmcli connection modify Hotspot ipv4.addresses 192.168.15.2/24
+
+    - name: Set wifi hotspot autoconnect to true to enable it on every boot 
+      become: true
+      command: nmcli connection modify Hotspot connection.autoconnect true
+
+    - name: Clone the BerryMetre repository
+      ansible.builtin.git:
+        repo: https://github.com/freitaglab/BerryMetre.git
+        dest: ~/BerryMetre
+
+    - name: Create virtual environment and install requirements for the BerryMetre
+      pip: 
+        requirements: ~/BerryMetre/BerryMetrePythonReceiver/requirements.txt
+        virtualenv: ~/venvs/berrymetre
+        virtualenv_python: python3
+
+    - name: Copy local configuration file
+      copy:
+        dest: ~/BerryMetre/BerryMetrePythonReceiver/berryconfig.py
+        src: ../overlay/home/berrycells/BerryMetre/BerryMetrePythonReceiver/berryconfig.py
+
+    - name: Patch the brother python package to work with new pillow version
+      command: sed -i 's/ANTIALIAS/LANCZOS/g' ~/venvs/berrymetre/lib/python3.11/site-packages/brother_ql/conversion.py
+
+    - name: Copy bashrc
+      copy:
+        dest: ~/.bashrc
+        src: ../overlay/home/berrycells/.bashrc
+
+    - name: Copy startup script
+      copy:
+        dest: ~/startBerryMetre.sh
+        src: ../overlay/home/berrycells/startBerryMetre.sh
+        mode: '0755'
+
+    # - name: Reboot the machine
+    #   become: true
+    #   ansible.builtin.reboot:
+    #     msg: "Rebooting machine in 5 seconds"
+
+    - name: Ensure fluxbox configuration directory exists
+      file: 
+        path: ~/.fluxbox
+        state: directory
+
+    - name: Copy fluxbox startup configuration
+      copy:
+        dest: ~/.fluxbox/startup
+        src: ../overlay/home/berrycells/.fluxbox/startup
+
+    - name: Copy fluxbox startup configuration
+      copy:
+        dest: ~/.fluxbox/menu
+        src: ../overlay/home/berrycells/.fluxbox/menu
+
+    - name: Copy fluxbox init configuration
+      copy:
+        dest: ~/.fluxbox/init
+        src: ../overlay/home/berrycells/.fluxbox/init
+
+    - name: Make sure there is no lastwallpaper file
+      ansible.builtin.file:
+        path: ~/.fluxbox/lastwallpaper
+        state: absent
+
+    - name: Ensure plymouth theme directory exists
+      become: true
+      file: 
+        path: /usr/share/plymouth/themes/pix
+        state: directory
+
+    - name: Copy plymouth berrycell configuration
+      become: true
+      copy:
+        dest: /usr/share/plymouth/themes/pix/pix.plymouth
+        src: ../overlay/usr/share/plymouth/themes/pix/pix.plymouth
+
+    - name: Copy plymouth berrycell script
+      become: true
+      copy:
+        dest: /usr/share/plymouth/themes/pix/pix.script
+        src: ../overlay/usr/share/plymouth/themes/pix/pix.script
+
+    - name: Copy plymouth berrycell splash image
+      become: true
+      copy:
+        dest: /usr/share/plymouth/themes/pix/splash.png
+        src: ../overlay/usr/share/plymouth/themes/pix/splash.png
+
+    - name: Update theme and rebuild initrd
+      become: true
+      command: plymouth-set-default-theme --rebuild-initrd pix
+
+    # - name: Set fluxbox background image
+    #   command: fbsetbg /usr/share/plymouth/themes/pix/splash.png
+
+# Maybe:
+# sudo systemctl disable --now getty@tty1
+
+    - name: Reboot the machine
+      become: true
+      ansible.builtin.reboot:
+        msg: "Rebooting machine in 5 seconds"
