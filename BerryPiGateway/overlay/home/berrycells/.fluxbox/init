@@ -1,0 +1,6 @@
+session.screen0.toolbar.widthPercent:   0
+session.screen0.iconbar.mode:   {static groups} (workspace)
+session.screen0.tabs.usePixmap: false
+session.screen0.slit.placement: RightBottom
+session.screen0.slit.direction: Vertical
+session.configVersion:  13
