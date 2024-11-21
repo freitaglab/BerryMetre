@@ -19,9 +19,11 @@ from google.cloud import storage
 import serial
 import requests
 from pynput import keyboard
+from pynput.keyboard import Key,Controller
 import io
 import sys
 import os
+import subprocess
 import brother_ql
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
@@ -121,7 +123,8 @@ if printerType == 'brother':
     # nclBottomLogo = Image.open('res/150YearsSageLogo732.png')
     # nclBottomLogo = Image.open('res/RS_black_halftext_732.png')
     # nclBottomLogo = Image.open('res/Beamish_black_halftext_732.png')
-    nclBottomLogo = Image.open('res/tnc_sunet_732.png')
+    # nclBottomLogo = Image.open('res/tnc_sunet_732.png')
+    nclBottomLogo = Image.open('res/discovery_732_732.png')
 
     qrberry = Image.open('res/qrberryred.png')
 
@@ -451,7 +454,17 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
         printQueue.put((stickerFileOut, cellNumber))
     
     if showQrCode == True:
-        final.show()
+        print(f'Show {qrFileOut}')
+        subprocess.Popen(["feh", qrFileOut])
+        print(f'os.system executed')
+        time.sleep(2)
+        kbd=Controller()
+        print(f'Press alt tab')
+        kbd.press(Key.alt_l)
+        kbd.press(Key.tab)
+        kbd.release(Key.tab)
+        kbd.release(Key.alt_l)
+        print(f'feh should show qr now')
 
 # class ProcessSocialAction(threading.Thread):
 #     def __init__(self, name):
@@ -551,14 +564,27 @@ class ProcessUDP(threading.Thread):
                 # print("Socket timeout")
                 stimeout = True
 
+combination = [Key.alt_l, Key.f4]
+currently_pressed = set()
+
 def on_press(key):
-    global saveImageNow
-    global toggleFullscreen
+    global saveImageNow, toggleFullscreen, combination
+
     # global drawPowerArea
     try:
         # print('Alphanumeric key pressed: {0} '.format(
         #     key.char))
         # We ignore keypress for now if we do live csv files
+
+        if key in combination:
+            print(f'Currently pressed: {key}')
+            currently_pressed.add(key)
+
+        if currently_pressed == combination:
+            is_pressed = True
+            print('Exit the program!')
+            os._exit(1)
+
         if ignoreKeypress == False:
             if key.char == 'n':
                 print("Prepare for new save!")
@@ -570,6 +596,7 @@ def on_press(key):
                 print("Print sticker!")
             if key.char == 'g':
                 print("Upload image to google!")
+                
     except:
         nothing = 0
         # print('special key pressed: {0}'.format(
