@@ -38,7 +38,6 @@
           - git
           - python3-pip
           - python3-virtualenv
-          - python3-pyqt6
           - xterm
           - libxcb-cursor0
           - libxcb-icccm4
@@ -80,11 +79,20 @@
         repo: https://github.com/freitaglab/BerryMetre.git
         dest: ~/BerryMetre
 
+    - name: install pyenv
+      import_role:
+        name: staticdev.pyenv
+      vars:
+        pyenv_env: 'system'
+        pyenv_global: ["3.9.23"]
+        pyenv_python_versions: ["3.9.23"]
+        pyenv_uninstall_python_w_wrong_configure_opts: False
+
     - name: Create virtual environment and install requirements for the BerryMetre
       pip: 
         requirements: ~/BerryMetre/BerryMetrePythonReceiver/requirements.txt
         virtualenv: ~/venvs/berrymetre
-        virtualenv_python: python3
+        virtualenv_python: /usr/local/pyenv/shims/python
 
     - name: Copy local configuration file
       copy:
@@ -92,7 +100,7 @@
         src: ../overlay/home/berrycells/BerryMetre/BerryMetrePythonReceiver/berryconfig.py
 
     - name: Patch the brother python package to work with new pillow version
-      command: sed -i 's/ANTIALIAS/LANCZOS/g' ~/venvs/berrymetre/lib/python3.11/site-packages/brother_ql/conversion.py
+      command: sed -i 's/ANTIALIAS/LANCZOS/g' ~/venvs/berrymetre/lib/python3.9/site-packages/brother_ql/conversion.py
 
     - name: Copy bashrc
       copy:
