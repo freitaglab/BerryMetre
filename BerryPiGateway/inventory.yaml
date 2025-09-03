@@ -3,5 +3,5 @@
 allhosts:
   hosts:
     berrygateway:
-      ansible_host: bootstrapgateway
+      ansible_host: berrygateway
       ansible_user: berrycells

@@ -7,4 +7,3 @@ pynput
 brother-ql
 scipy
 webdavclient3
-PyQt6
