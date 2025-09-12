@@ -630,15 +630,6 @@ fig, (ax, axQ) = plt.subplots(2, gridspec_kw={'height_ratios': [8, 1]}, constrai
 plt.xticks(fontsize=FONTSIZE)
 plt.yticks(fontsize=FONTSIZE)
 
-
-# Only needed on Windows
-if sys.platform == 'win32':
-    fig.canvas.toolbar.pack_forget()
-
-if fullscreen == True:
-    manager = plt.get_current_fig_manager()
-    manager.full_screen_toggle()
-
 x = [0] * msr
 py = [0] * msr
 iy = [0] * msr
@@ -728,8 +719,15 @@ plt.show(block=False)
 plt.pause(0.1)
 
 # bg = fig.canvas.copy_from_bbox(fig.bbox)
-
 # ax = fig.add_subplot(111)
+
+# Only needed on Windows
+if sys.platform == 'win32':
+    fig.canvas.toolbar.pack_forget()
+
+if fullscreen == True:
+    manager = plt.get_current_fig_manager()
+    manager.full_screen_toggle()
 
 ax.draw_artist(powerline)
 ax.draw_artist(currentline)
