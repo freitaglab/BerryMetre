@@ -124,7 +124,8 @@ if printerType == 'brother':
     # nclBottomLogo = Image.open('res/RS_black_halftext_732.png')
     # nclBottomLogo = Image.open('res/Beamish_black_halftext_732.png')
     # nclBottomLogo = Image.open('res/tnc_sunet_732.png')
-    nclBottomLogo = Image.open('res/discovery_732.png')
+    # nclBottomLogo = Image.open('res/discovery_732.png')
+    nclBottomLogo = Image.open('res/RS_WhiteTextBlackBg732.png')
 
     qrberry = Image.open('res/qrberryred.png')
 
