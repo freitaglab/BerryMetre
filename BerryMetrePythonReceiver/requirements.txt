@@ -8,3 +8,5 @@ brother-ql
 scipy
 webdavclient3
 PyQt6
+pyserial
+pyserial-asyncio
