@@ -15,7 +15,7 @@
     - name: Configure lightdm autologin for berrycells user
       become: true
       command: apt-key add /tmp/raspbian.public.key
-  
+
     - name: Update and upgrade apt packages
       become: true
       apt:
@@ -71,7 +71,7 @@
       become: true
       command: nmcli connection modify Hotspot ipv4.addresses 192.168.15.2/24
 
-    - name: Set wifi hotspot autoconnect to true to enable it on every boot 
+    - name: Set wifi hotspot autoconnect to true to enable it on every boot
       become: true
       command: nmcli connection modify Hotspot connection.autoconnect true
 
@@ -84,7 +84,7 @@
       command: sed -i 's/PyQt6//' ~/BerryMetre/BerryMetrePythonReceiver/requirements.txt
 
     - name: Create virtual environment and install requirements for the BerryMetre
-      pip: 
+      pip:
         requirements: ~/BerryMetre/BerryMetrePythonReceiver/requirements.txt
         virtualenv: ~/venvs/berrymetre
         virtualenv_python: python3
@@ -109,10 +109,10 @@
       copy:
         dest: ~/startBerryMetre.sh
         src: ../overlay/home/berrycells/startBerryMetre.sh
-        mode: '0755'
+        mode: "0755"
 
     - name: Ensure fluxbox configuration directory exists
-      file: 
+      file:
         path: ~/.fluxbox
         state: directory
 
@@ -138,7 +138,7 @@
 
     - name: Ensure plymouth theme directory exists
       become: true
-      file: 
+      file:
         path: /usr/share/plymouth/themes/pix
         state: directory
 
@@ -180,7 +180,7 @@
         src: ../overlay/boot/firmware/config.txt
 
     - name: Ensure fluxbox configuration directory exists
-      file: 
+      file:
         path: ~/.fluxbox
         state: directory
 
@@ -211,8 +211,25 @@
 
     - name: Set fluxbox background image
       environment:
-          DISPLAY: ":0.0"    
+        DISPLAY: ":0.0"
       command: fbsetbg -f /home/berrycells/splash.png
+
+    - name: Disable serial console using raspi-config
+      become: true
+      command: raspi-config nonint do_serial_cons 1
+
+    - name: Enable serial hardware using raspi-config
+      become: true
+      command: raspi-config nonint do_serial_hw 0
+
+    - name: Disable bluetooth in config.txt
+      become: true
+      lineinfile:
+        path: /boot/firmware/config.txt
+        line: dtoverlay=disable-bt
+        state: present
+        create: true
+        insertafter: "[all]"
 
     - name: Disable tty1
       become: true
