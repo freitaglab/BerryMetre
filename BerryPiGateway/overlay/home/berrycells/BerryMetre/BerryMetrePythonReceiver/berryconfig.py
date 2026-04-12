@@ -2,8 +2,10 @@ class BerryConfiguration():
     deviceid = 17                               # Device id; only packages coming from this id will be processed
     udp_ip = "192.168.15.2"                     # Local IP
     udp_fip = ["192.168.15.9","192.168.15.10"]  # Forward IP
-    forwardUdp = True                           # forward udp packages to other IP or not
-    mode = 'udp'                                # udp or serial
+    forwardUdp = False                           # forward udp packages to other IP or not
+    mode = 'serial'                             # udp or serial
+    port = '/dev/ttyAMA0'                       # serial port address
+    baudrate = 115200                           # baudrate for berrymetre connection
     showQrCode = False                          # show QR code as option if you do not want to print the sticker
     fullscreen = True
     saveCsv = False                             # Save CSV measurement data

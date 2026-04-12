@@ -16,7 +16,8 @@ import qrcode
 import json
 # import ppa6
 from google.cloud import storage
-import serial
+import asyncio
+import serial_asyncio
 import requests
 from pynput import keyboard
 from pynput.keyboard import Key,Controller
@@ -36,6 +37,8 @@ import berryconfig # berryconfig contains a class with configuration:
 #     udp_fip = ["192.168.15.9","192.168.15.10"]  # Forward IP
 #     forwardUdp = True                           # forward udp packages to other IP or not
 #     mode = 'udp'                                # udp or serial
+#    port = '/dev/ttyAMA0'                       # serial port address
+#    baudrate = 115200                           # baudrate for berrymetre connection
 #     showQrCode = False                          # show QR code as option if you do not want to print the sticker
 #     fullscreen = False
 #     saveCsv = False                             # Save CSV measurement data
@@ -316,30 +319,24 @@ class LiveCsv(threading.Thread):
             except Exception as e:
                 print(f'Error in live csv thread: {e}')
 
-class ProcessSerial(threading.Thread):
-    def __init__(self, name):
-        threading.Thread.__init__(self)
-        self.name = name
+async def read_serial():
+    global info
+    global stimeout
+    reader, _ = await serial_asyncio.open_serial_connection(
+        url=config.port, baudrate=config.baudrate
+    )
+    while True:
+        line = await reader.readuntil(b'\n')  # Read until newline
+        # Decode and remove control characters
+        info = line.decode('utf-8').strip().replace('<','').replace('>','')
+        stimeout = False
+#        print(info)  # Decode and strip newline
 
-    def run(self):
-        global info
-        global stimeout
-
-        arduino = serial.Serial(COMPORT, 115200, timeout=SERIALTIMEOUT)
-        print(arduino.name)
-
-        # global flag
-        # global val     #made global here
-        while True:
-            try:
-                line = arduino.readline()
-                info = line.decode()
-                stimeout = False
-            except:
-                info = nullinfo
-                # print("Socket timeout")
-                stimeout = True
-            # print("Info: ", info)
+def read_serial_loop():
+    loop = asyncio.new_event_loop()  # Create a new event loop
+    asyncio.set_event_loop(loop)    # Set it as the current loop for this thread
+    loop.run_until_complete(read_serial())  # Run the async task
+    loop.close()
 
 def SocialActionFunction(fileTimeStamp, cellNumber):
     print("Process social actions: " + fileTimeStamp + ", cell number: " + str(cellNumber))
@@ -449,11 +446,11 @@ def SocialActionFunction(fileTimeStamp, cellNumber):
         upload_blob("my.berrycells.com", htmlFileOut, htmlFileName)
         upload_blob("my.berrycells.com", stickerFileOut, stickerFileName)
         if saveCsv == True:
-            upload_blob("my.berrycells.com", csvFileOut, csvFileName)       
+            upload_blob("my.berrycells.com", csvFileOut, csvFileName)
 
     if printSticker == True:
         printQueue.put((stickerFileOut, cellNumber))
-    
+
     if showQrCode == True:
         print(f'Show {qrFileOut}')
         subprocess.Popen(["feh", qrFileOut])
@@ -496,7 +493,7 @@ class GlobalCellCounter(threading.Thread):
                 sockg = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sockg.sendto(bytes(message, "utf-8"), (FIP, UDP_PORT))
             time.sleep(1)
-                
+
 
 
 class ProcessUDP(threading.Thread):
@@ -547,7 +544,7 @@ class ProcessUDP(threading.Thread):
                     s = info.split(",")
                     counter = s[1]
                     currentCell = int(counter)
-                
+
                 # Forward UDP
                 if forwardUdp == True:
                     for FIP in UDP_FIP:
@@ -597,7 +594,7 @@ def on_press(key):
                 print("Print sticker!")
             if key.char == 'g':
                 print("Upload image to google!")
-                
+
     except:
         nothing = 0
         # print('special key pressed: {0}'.format(
@@ -735,8 +732,11 @@ ax.draw_artist(currentline)
 fig.canvas.blit(fig.bbox)
 
 if mode == 'serial':
-    a = ProcessSerial("SerialThread")
-    a.start()
+    thread = threading.Thread(target=read_serial_loop)
+    thread.start()
+#    asyncio.create_task(read_serial())
+    #a = ProcessSerial("SerialThread")
+    #a.start()
 if mode == 'udp':
     a = ProcessUDP("UdpThread")
     a.start()
@@ -762,7 +762,7 @@ def printQueueWorker():
         count = item[1]
         print(f'Printing  {filename}, cell number {count}, sending to {printerType}')
 
-        
+
         if printerType == 'brother':
             sendToBrotherPrinter(filename)
             print(f'{filename} sent to {PRINTER_IDENTIFIER}')
@@ -775,7 +775,7 @@ def printQueueWorker():
         #     ppa6printer.setConcentration(1)
         #     ppa6printer.printBreak(25)
         #     ppa6printer.printImage(final)
-        #     text = " Berry Cell #{}\n".format(count) 
+        #     text = " Berry Cell #{}\n".format(count)
         #     ppa6printer.printBreak(10)
         #     ppa6printer.printASCII(text)
         #     ppa6printer.printBreak(25)
@@ -819,7 +819,7 @@ while (True):
         fig.canvas.blit(fig.bbox)
         fig.canvas.flush_events()
         infoAnnotation.remove()
-            
+
 
     # if info == "0,0,0,0,0,0,0,0,0,0":
     #     at.set_position((xmax/2 - 0.15*xmax , ymax/2))
@@ -857,7 +857,7 @@ while (True):
             # print("Power:\t", power)
 
             icount = int(count)
- 
+
             for i in range(msr):
                 xm[i][icount] = voltage[i]
                 pym[i][icount] = power[i]
@@ -926,7 +926,7 @@ while (True):
 
             # x = np.array([v9,v8,v7,v6,v5,v4,v3,v2,v1])
             # y = np.array([p9,p8,p7,p6,p5,p4,p3,p2,p1])
-            
+
             powermeasure.set_xdata(newx)
             powermeasure.set_ydata(newpy)
 
@@ -977,7 +977,7 @@ while (True):
             # else:
             # old else begin
             # filler = ax.fill_between((0,xpos),(maxcurrent,maxcurrent), color = powerfillcolor, alpha = 0.15)
-            
+
             if saveImageNow == False:
                 ab = AnnotationBbox(imagebox, (xmax/2,ymax*ncllogoyoffset), bboxprops =dict(alpha=0.0))
                 ax.add_artist(ab)
@@ -1020,7 +1020,7 @@ while (True):
         else:
             skipped = True
             # print('Skip duplicate')
-        
+
         prevCount = count
         endtime = datetime.datetime.now()
         runtime = endtime - starttime
@@ -1039,7 +1039,7 @@ while (True):
             # Draw filler once for printing
             filler = ax.fill_between((0,xpos[0]),(maxcurrent,maxcurrent), color = powerfillcolor, alpha = 0.15)
             ax.draw_artist(filler)
-            fileTimeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") 
+            fileTimeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
             imagePngOut = "out/" + fileTimeStamp + ".png"
             stickerFileOut = "out/" + fileTimeStamp + "-sticker.png"
