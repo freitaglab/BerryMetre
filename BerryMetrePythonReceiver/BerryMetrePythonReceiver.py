@@ -845,7 +845,10 @@ while (True):
 
             for i in range(msr):
                 # Compensate for power supply reference voltage
-                voltage[i] = (float(s[i])+0.00001*(msr+1))/AREFFACTOR
+                try:
+                    voltage[i] = (float(s[i])+0.00001*(msr+1))/AREFFACTOR
+                except: # in case we get rubbish values from the serial connection
+                    voltage[i] = (0.0+0.00001*(msr+1))/AREFFACTOR
                 current[i] = (voltage[i]*1000/(res[i]+RSERIES)) / (1 + MAGICVA/voltage[i])
 
                 #current[i] = (voltage[i]*1000/(res[i]+RSERIES))
