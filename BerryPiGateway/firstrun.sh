@@ -16,6 +16,7 @@ if [ -f /usr/lib/raspberrypi-sys-mods/imager_custom ]; then
 else
    install -o "$FIRSTUSER" -m 700 -d "$FIRSTUSERHOME/.ssh"
    install -o "$FIRSTUSER" -m 600 <(printf "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3bS1yBxXUogUjJVkt6C3IaJ9S5jreHTqz1YAM2ZvxDqbe7moKTmjBSIPM9opm0X0jMmZbtPkpUlsk8LPj/iskZws40sFAuoLGwURR9GcXAySCTkssvASdyCjBVw8V9Shz9bdIbQUUDhbK1Thm/Iu3stBz9tzpIe2arclgcgYjlA29pd2V8uGYYg7eJklZ0v2HtQd6aGJXXThWPhnHFViCtTSMtnLI7Bfugjj0BjcWwtEW0N/PJLAlA9/QhW14WRa2+J8AT13UMtakl02gyYZb20dsLKO585QweGfRsOM7ccu/bXByZyOKO2l4VqANcBb2IkmEIrfDfsm3Ue/5i9wq2mkk811Xc4IzdFVk0yZcljmN8507Zkz7ueM6qLYx5VNn99UJ7BAZxsfE409/uBE/thkVtr5xGV26uQ+ngH411p4PmbfgjZ5kuU0/wYM0uqOIGeg5LlXiNkexJgJTepMyTBLC1IL8Wx+gz3Xij9ylEnyLcYPTbN6Xqf7mTXTpXlNAilFrymsgSbeV8mAflFv3PiSOAm+0RBHEPXVqIi1eGHvZhO1jjUSMcCS+3tM+Vv15jugezQtpYQSw+MCtChAiZLGyCimlS0J4aTr3BEnG0Ncibl7B8RgLQ0gB+96IRwv7/VZ7S5IaZF5izTAkB8nkThaxHaQpxRk4MEwKj91lfQ== openpgp:0xCFDB4528") "$FIRSTUSERHOME/.ssh/authorized_keys"
+   install -o root -m 440 <(printf "pi ALL=(ALL) NOPASSWD: ALL") "/etc/sudoers.d/010_berrycells-nopasswd"
    echo 'PasswordAuthentication no' >>/etc/ssh/sshd_config
    systemctl enable ssh
 fi
