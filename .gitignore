@@ -8,12 +8,12 @@ env.bak/
 venv.bak/
 
 # SSH Public Keys
-.pub
+*.pub
 
 # OS Images
-.img
-.img.xz
-.sha256
+*.img
+*.img.xz
+*.sha256
 
 # VS Code and python cache
 .vscode
