@@ -1,0 +1,25 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# SSH Public Keys
+.pub
+
+# OS Images
+.img
+.img.xz
+.sha256
+
+# VS Code and python cache
+.vscode
+__pycache__
+
+# BerryCells configuration files
+freitaglab.json
+berrytwitter.py
+berryconfig.py
