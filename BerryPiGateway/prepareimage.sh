@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 target=$1
-baseurl=https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2024-07-04/
-imagefile=2024-07-04-raspios-bookworm-arm64-lite.img.xz
-imageChecksum=2746d9ff409c34de471f615a94a3f15917dca9829ddbc7a9528f019e97dc4f03  # Checksum of the uncompressed image
+baseurl=https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2026-04-14/
+imagefile=2026-04-13-raspios-trixie-arm64-lite.img.xz
+imageChecksum=5c9caff670594eb43b68afee2a156198cb4e4f58e5dec724b4520c53c0ab5aba  # Checksum of the uncompressed image
 
 # Delete the local cache file until https://github.com/raspberrypi/rpi-imager/issues/974 is fixed
 if [ -f ~/.cache/Raspberry\ Pi/Imager/lastdownload.cache ]; then
