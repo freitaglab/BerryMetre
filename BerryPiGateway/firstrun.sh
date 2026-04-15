@@ -13,11 +13,11 @@ FIRSTUSER=`getent passwd 1000 | cut -d: -f1`
 FIRSTUSERHOME=`getent passwd 1000 | cut -d: -f6`
 if [ -f /usr/lib/raspberrypi-sys-mods/imager_custom ]; then
    /usr/lib/raspberrypi-sys-mods/imager_custom enable_ssh -k 'SSH_KEY'
-   install -o root -m 440 <(printf "pi ALL=(ALL) NOPASSWD: ALL") "/etc/sudoers.d/010_berrycells-nopasswd"
+   install -o root -m 440 <(printf "berrycells ALL=(ALL) NOPASSWD: ALL") "/etc/sudoers.d/010_berrycells-nopasswd"
 else
    install -o "$FIRSTUSER" -m 700 -d "$FIRSTUSERHOME/.ssh"
    install -o "$FIRSTUSER" -m 600 <(printf "SSH_KEY") "$FIRSTUSERHOME/.ssh/authorized_keys"
-   install -o root -m 440 <(printf "pi ALL=(ALL) NOPASSWD: ALL") "/etc/sudoers.d/010_berrycells-nopasswd"
+   install -o root -m 440 <(printf "berrycells ALL=(ALL) NOPASSWD: ALL") "/etc/sudoers.d/010_berrycells-nopasswd"
    echo 'PasswordAuthentication no' >>/etc/ssh/sshd_config
    systemctl enable ssh
 fi
