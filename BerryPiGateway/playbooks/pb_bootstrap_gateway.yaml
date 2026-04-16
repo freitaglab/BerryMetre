@@ -180,7 +180,11 @@
     - name: Copy berrycell background image to home folder
       copy:
         dest: ~/splash.png
-        src: ../overlay/usr/share/plymouth/themes/pix/splash.png
+        src: ../overlay/home/berrycells/splash.png
+
+    - name: Append custom parameters to cmdline.txt to make boot less chatty
+      become: true
+      command: sed -i "1 s|$| logo.nologo consoleblank=0 loglevel=0 vt.global_cursor_default=0 splash silent quiet|" /boot/firmware/cmdline.txt
 
     - name: Reboot the machine so we can set the fluxbox background image
       become: true
