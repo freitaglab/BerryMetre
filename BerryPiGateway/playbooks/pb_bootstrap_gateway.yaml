@@ -1,21 +1,6 @@
 - name: Update and upgrade all hosts in the inventory file
   hosts: berrygateway
   tasks:
-    - name: Update raspi.list with a local mirror
-      become: true
-      copy:
-        dest: /etc/apt/sources.list.d/raspi.list
-        src: ../overlay/etc/apt/sources.list.d/raspi.list
-
-    - name: Download lmu mirror certificate
-      get_url:
-        url: https://debian.bio.lmu.de/raspbian/raspbian.public.key
-        dest: /tmp/raspbian.public.key
-
-    - name: Configure lightdm autologin for berrycells user
-      become: true
-      command: apt-key add /tmp/raspbian.public.key
-
     - name: Update and upgrade apt packages
       become: true
       apt:
@@ -31,6 +16,7 @@
         state: present
         pkg:
           - wtype
+          - rpi-splash-screen-support
           - lightdm
           - fluxbox
           - lxterminal
@@ -53,6 +39,12 @@
       become: true
       command: "systemctl set-default graphical.target"
 
+    - name: Ensure getty service configuration directory exists
+      become: true
+      file:
+        path: /etc/systemd/system/getty@tty1.service.d
+        state: directory
+
     - name: Configure autologin for berrycells user
       become: true
       copy:
@@ -62,6 +54,19 @@
     - name: Configure lightdm autologin for berrycells user
       become: true
       command: sed /etc/lightdm/lightdm.conf -i -e "s/^\(#\|\)autologin-user=.*/autologin-user=berrycells/"
+
+    - name: Set country to GB to enable Wi-Fi
+      become: true
+      command: raspi-config nonint do_wifi_country GB
+
+    - name: Setup wifi hotspot for the berrymetre - for the pmf workaround
+      become: true
+      command: nmcli device wifi hotspot ssid berrycells password berrysolarcells
+      ignore_errors: true
+
+    - name: Workaround for https://github.com/raspberrypi/trixie-feedback/issues/29
+      become: true
+      command: nmcli con mod Hotspot 802-11-wireless-security.pmf 1
 
     - name: Setup wifi hotspot for the berrymetre
       become: true
@@ -98,7 +103,7 @@
         src: ../overlay/home/berrycells/BerryMetre/BerryMetrePythonReceiver/berryconfig.py
 
     - name: Patch the brother python package to work with new pillow version
-      command: sed -i 's/ANTIALIAS/LANCZOS/g' ~/venvs/berrymetre/lib/python3.11/site-packages/brother_ql/conversion.py
+      command: sed -i 's/ANTIALIAS/LANCZOS/g' ~/venvs/berrymetre/lib/python3.13/site-packages/brother_ql/conversion.py
 
     - name: Copy bashrc
       copy:
@@ -136,48 +141,16 @@
         path: ~/.fluxbox/lastwallpaper
         state: absent
 
-    - name: Ensure plymouth theme directory exists
-      become: true
-      file:
-        path: /usr/share/plymouth/themes/pix
-        state: directory
-
-    - name: Copy plymouth berrycell configuration
+    - name: Copy berrycell splash image
       become: true
       copy:
-        dest: /usr/share/plymouth/themes/pix/pix.plymouth
-        src: ../overlay/usr/share/plymouth/themes/pix/pix.plymouth
+        dest: /root/logo.tga
+        src: ../overlay/root/logo.tga
 
-    - name: Copy plymouth berrycell script
-      become: true
-      copy:
-        dest: /usr/share/plymouth/themes/pix/pix.script
-        src: ../overlay/usr/share/plymouth/themes/pix/pix.script
-
-    - name: Copy plymouth berrycell splash image
-      become: true
-      copy:
-        dest: /usr/share/plymouth/themes/pix/splash.png
-        src: ../overlay/usr/share/plymouth/themes/pix/splash.png
-
-    - name: Update theme and rebuild initrd
-      become: true
-      command: plymouth-set-default-theme --rebuild-initrd pix
-
-    - name: Reboot the machine
-      become: true
-      ansible.builtin.reboot:
-        msg: "Rebooting machine in 5 seconds"
-
-    - name: Append custom parameters to cmdline.txt
-      become: true
-      command: sed -i "1 s|$| logo.nologo consoleblank=0 loglevel=0 vt.global_cursor_default=0 splash silent quiet|" /boot/firmware/cmdline.txt
-
-    - name: Use custom config.txt
-      become: true
-      copy:
-        dest: /boot/firmware/config.txt
-        src: ../overlay/boot/firmware/config.txt
+    # Disable until https://github.com/raspberrypi/rpi-splash-screen-support/issues/5 is fixed
+    # - name: Configure berrycells splash image
+    #   become: true
+    #   command: configure-splash /root/logo.tga
 
     - name: Ensure fluxbox configuration directory exists
       file:
@@ -208,6 +181,11 @@
       copy:
         dest: ~/splash.png
         src: ../overlay/usr/share/plymouth/themes/pix/splash.png
+
+    - name: Reboot the machine so we can set the fluxbox background image
+      become: true
+      ansible.builtin.reboot:
+        msg: "Rebooting machine in 5 seconds"
 
     - name: Set fluxbox background image
       environment:
