@@ -1,5 +1,6 @@
 from concurrent.futures import process
 import matplotlib
+matplotlib.use("TkAgg")
 import socket
 import datetime
 import select
