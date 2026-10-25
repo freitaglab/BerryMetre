@@ -1,21 +1,6 @@
 - name: Update and upgrade all hosts in the inventory file
   hosts: berrygateway
   tasks:
-    - name: Update raspi.list with a local mirror
-      become: true
-      copy:
-        dest: /etc/apt/sources.list.d/raspi.list
-        src: ../overlay/etc/apt/sources.list.d/raspi.list
-
-    - name: Download lmu mirror certificate
-      get_url:
-        url: https://debian.bio.lmu.de/raspbian/raspbian.public.key
-        dest: /tmp/raspbian.public.key
-
-    - name: Configure lightdm autologin for berrycells user
-      become: true
-      command: apt-key add /tmp/raspbian.public.key
-
     - name: Update and upgrade apt packages
       become: true
       apt:
@@ -39,6 +24,7 @@
           - python3-pip
           - python3-virtualenv
           - python3-pyqt6
+          - python3-tk
           - xterm
           - libxcb-cursor0
           - libxcb-icccm4
@@ -52,6 +38,13 @@
     - name: "Set default to graphical target"
       become: true
       command: "systemctl set-default graphical.target"
+
+    - name: Ensure getty@tty1.service.d directory exists
+      become: true
+      ansible.builtin.file:
+        path: /etc/systemd/system/getty@tty1.service.d
+        state: directory
+        mode: "0755"
 
     - name: Configure autologin for berrycells user
       become: true
@@ -86,7 +79,7 @@
         src: ../overlay/home/berrycells/BerryMetre/BerryMetrePythonReceiver/berryconfig.py
 
     - name: Patch the brother python package to work with new pillow version
-      command: sed -i 's/ANTIALIAS/LANCZOS/g' ~/venvs/berrymetre/lib/python3.11/site-packages/brother_ql/conversion.py
+      command: sed -i 's/ANTIALIAS/LANCZOS/g' ~/venvs/berrymetre/lib/python3.13/site-packages/brother_ql/conversion.py
 
     - name: Copy bashrc
       copy:
@@ -152,7 +145,7 @@
       become: true
       command: plymouth-set-default-theme --rebuild-initrd pix
 
-    - name: Reboot the machine
+    - name: Reboot the machine and continue configuration after reboot
       become: true
       ansible.builtin.reboot:
         msg: "Rebooting machine in 5 seconds"
