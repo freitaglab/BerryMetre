@@ -19,6 +19,7 @@ else
    install -o "$FIRSTUSER" -m 600 <(printf "SSH_KEY") "$FIRSTUSERHOME/.ssh/authorized_keys"
    install -o root -m 440 <(printf "berrycells ALL=(ALL) NOPASSWD: ALL") "/etc/sudoers.d/010_berrycells-nopasswd"
    echo 'PasswordAuthentication no' >>/etc/ssh/sshd_config
+   install -o root -m 440 <(printf "pi ALL=(ALL) NOPASSWD: ALL") "/etc/sudoers.d/010_berrycells-nopasswd"
    systemctl enable ssh
 fi
 if [ -f /usr/lib/userconf-pi/userconf ]; then
