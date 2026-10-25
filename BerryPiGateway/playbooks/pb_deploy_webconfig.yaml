@@ -4,13 +4,15 @@
     wifi_ssid: BerryCells
     wifi_password: BerrySolarCells
     wifi_country: GB  # ISO 3166-1 code for the United Kingdom (there is no separate code for England)
-    wifi_connection: BerryCells
+    wifi_channel: 6
     wifi_address: 192.168.15.2/24
   tasks:
-    - name: Install iw so raspi-config can apply the WiFi country without a reboot
+    - name: Install hostapd for the WiFi access point and iw for raspi-config
       become: true
       apt:
-        pkg: iw
+        pkg:
+          - hostapd
+          - iw
         state: present
 
     - name: Read the current WiFi country
@@ -37,51 +39,110 @@
       command: nmcli radio wifi on
       when: wifi_radio.stdout != "enabled"
 
-    - name: Remove the old hotspot connection created by pb_bootstrap_gateway.yaml
-      become: true
-      command: nmcli connection delete Hotspot
-      register: delete_result
-      failed_when: false
-      changed_when: delete_result.rc == 0
-
-    # pmf is disabled (1) because the brcmfmac driver of the Raspberry Pi
-    # fails with "key setting validation failed" otherwise
-    - name: Configure the static WiFi access point
+    # NetworkManager configures access points with WPA-PSK and WPA-PSK-SHA256, but the
+    # Pi 3 firmware only advertises WPA-PSK in its beacons. Clients then abort the
+    # handshake (reason 17, IE_DIFFERENT), which shows up as "incorrect password".
+    # hostapd advertises WPA-PSK only, so wlan0 is taken away from NetworkManager.
+    - name: Remove the old NetworkManager access point connections
       become: true
       community.general.nmcli:
-        conn_name: "{{ wifi_connection }}"
-        type: wifi
-        ifname: wlan0
-        ssid: "{{ wifi_ssid }}"
-        autoconnect: true
-        method4: shared
-        ip4: "{{ wifi_address }}"
-        method6: disabled
-        wifi:
-          mode: ap
-          band: bg
-          channel: 6
-        wifi_sec:
-          key-mgmt: wpa-psk
-          psk: "{{ wifi_password }}"
-          proto: [rsn]
-          pairwise: [ccmp]
-          group: [ccmp]
-          pmf: 1
-        state: present
-      register: wifi_ap
+        conn_name: "{{ item }}"
+        state: absent
+      loop:
+        - Hotspot
+        - BerryCells
 
-    - name: Read the WiFi access point state
-      command: nmcli -g GENERAL.STATE connection show {{ wifi_connection }}
-      register: wifi_ap_state
-      changed_when: false
-      failed_when: false  # the connection does not exist yet in a dry run
-      check_mode: false
-
-    - name: Start the WiFi access point
+    - name: Let NetworkManager ignore wlan0
       become: true
-      command: nmcli connection up {{ wifi_connection }}
-      when: wifi_ap is changed or wifi_ap_state.stdout != "activated"
+      copy:
+        dest: /etc/NetworkManager/conf.d/berrycells-unmanaged-wlan0.conf
+        content: |
+          [keyfile]
+          unmanaged-devices=interface-name:wlan0
+      register: nm_conf
+
+    - name: Reload NetworkManager configuration
+      become: true
+      ansible.builtin.systemd_service:
+        name: NetworkManager
+        state: reloaded
+      when: nm_conf is changed
+
+    - name: Configure the address and DHCP server of wlan0 with systemd-networkd
+      become: true
+      copy:
+        dest: /etc/systemd/network/10-berrycells-wlan0.network
+        content: |
+          [Match]
+          Name=wlan0
+
+          [Network]
+          Address={{ wifi_address }}
+          DHCPServer=yes
+          ConfigureWithoutCarrier=yes
+
+          [DHCPServer]
+          PoolOffset=10
+          PoolSize=100
+      register: networkd_conf
+
+    - name: Enable systemd-networkd
+      become: true
+      ansible.builtin.systemd_service:
+        name: systemd-networkd
+        enabled: true
+        state: started
+
+    - name: Disable systemd-networkd-wait-online (enabled with systemd-networkd, would delay booting)
+      become: true
+      ansible.builtin.systemd_service:
+        name: systemd-networkd-wait-online
+        enabled: false
+
+    - name: Apply the wlan0 network configuration
+      become: true
+      ansible.builtin.systemd_service:
+        name: systemd-networkd
+        state: restarted
+      when: networkd_conf is changed
+
+    - name: Configure the static WiFi access point
+      become: true
+      copy:
+        dest: /etc/hostapd/hostapd.conf
+        mode: "0600"
+        content: |
+          interface=wlan0
+          driver=nl80211
+          ssid={{ wifi_ssid }}
+          country_code={{ wifi_country }}
+          hw_mode=g
+          channel={{ wifi_channel }}
+          ieee80211n=1
+          wmm_enabled=1
+          auth_algs=1
+          wpa=2
+          wpa_key_mgmt=WPA-PSK
+          rsn_pairwise=CCMP
+          wpa_passphrase={{ wifi_password }}
+      register: hostapd_conf
+
+    - name: Enable and start hostapd
+      become: true
+      ansible.builtin.systemd_service:
+        name: hostapd
+        masked: false
+        enabled: true
+        state: started
+      ignore_errors: "{{ ansible_check_mode }}"  # hostapd is not installed in a dry run
+
+    - name: Restart hostapd after a configuration change
+      become: true
+      ansible.builtin.systemd_service:
+        name: hostapd
+        state: restarted
+      when: hostapd_conf is changed or nm_conf is changed
+      ignore_errors: "{{ ansible_check_mode }}"
 
     - name: Ensure web interface directory exists
       file:
