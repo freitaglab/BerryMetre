@@ -63,18 +63,6 @@
       become: true
       command: sed /etc/lightdm/lightdm.conf -i -e "s/^\(#\|\)autologin-user=.*/autologin-user=berrycells/"
 
-    - name: Setup wifi hotspot for the berrymetre
-      become: true
-      command: nmcli device wifi hotspot ssid berrycells password berrysolarcells
-
-    - name: Setup wifi hotspot ip range
-      become: true
-      command: nmcli connection modify Hotspot ipv4.addresses 192.168.15.2/24
-
-    - name: Set wifi hotspot autoconnect to true to enable it on every boot
-      become: true
-      command: nmcli connection modify Hotspot connection.autoconnect true
-
     - name: Clone the BerryMetre repository
       ansible.builtin.git:
         repo: https://github.com/freitaglab/BerryMetre.git
@@ -239,3 +227,6 @@
       become: true
       ansible.builtin.reboot:
         msg: "Rebooting machine in 5 seconds"
+
+# Static BerryCells WiFi access point and the web configuration interface
+- import_playbook: pb_deploy_webconfig.yaml

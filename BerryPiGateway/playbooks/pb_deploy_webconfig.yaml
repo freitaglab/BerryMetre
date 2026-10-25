@@ -1,0 +1,120 @@
+- name: Deploy the BerryMetre web configuration interface and the BerryCells WiFi access point
+  hosts: berrygateway
+  vars:
+    wifi_ssid: BerryCells
+    wifi_password: BerrySolarCells
+    wifi_country: GB  # ISO 3166-1 code for the United Kingdom (there is no separate code for England)
+    wifi_connection: BerryCells
+    wifi_address: 192.168.15.2/24
+  tasks:
+    - name: Install iw so raspi-config can apply the WiFi country without a reboot
+      become: true
+      apt:
+        pkg: iw
+        state: present
+
+    - name: Read the current WiFi country
+      become: true
+      command: raspi-config nonint get_wifi_country
+      register: wifi_country_current
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: Set the WiFi country (the access point does not start without it)
+      become: true
+      command: raspi-config nonint do_wifi_country {{ wifi_country }}
+      when: wifi_country_current.stdout != wifi_country
+
+    - name: Read the WiFi radio state
+      command: nmcli radio wifi
+      register: wifi_radio
+      changed_when: false
+      check_mode: false
+
+    - name: Enable wifi
+      become: true
+      command: nmcli radio wifi on
+      when: wifi_radio.stdout != "enabled"
+
+    - name: Remove the old hotspot connection created by pb_bootstrap_gateway.yaml
+      become: true
+      command: nmcli connection delete Hotspot
+      register: delete_result
+      failed_when: false
+      changed_when: delete_result.rc == 0
+
+    # pmf is disabled (1) because the brcmfmac driver of the Raspberry Pi
+    # fails with "key setting validation failed" otherwise
+    - name: Configure the static WiFi access point
+      become: true
+      community.general.nmcli:
+        conn_name: "{{ wifi_connection }}"
+        type: wifi
+        ifname: wlan0
+        ssid: "{{ wifi_ssid }}"
+        autoconnect: true
+        method4: shared
+        ip4: "{{ wifi_address }}"
+        method6: disabled
+        wifi:
+          mode: ap
+          band: bg
+          channel: 6
+        wifi_sec:
+          key-mgmt: wpa-psk
+          psk: "{{ wifi_password }}"
+          proto: [rsn]
+          pairwise: [ccmp]
+          group: [ccmp]
+          pmf: 1
+        state: present
+      register: wifi_ap
+
+    - name: Read the WiFi access point state
+      command: nmcli -g GENERAL.STATE connection show {{ wifi_connection }}
+      register: wifi_ap_state
+      changed_when: false
+      failed_when: false  # the connection does not exist yet in a dry run
+      check_mode: false
+
+    - name: Start the WiFi access point
+      become: true
+      command: nmcli connection up {{ wifi_connection }}
+      when: wifi_ap is changed or wifi_ap_state.stdout != "activated"
+
+    - name: Ensure web interface directory exists
+      file:
+        path: ~/berrywebconfig
+        state: directory
+
+    - name: Copy web interface
+      copy:
+        dest: ~/berrywebconfig/berrywebconfig.py
+        src: ../../BerryMetrePythonReceiver/webconfig/berrywebconfig.py
+        mode: "0755"
+      register: webconfig_code
+
+    - name: Install web interface service
+      become: true
+      copy:
+        dest: /etc/systemd/system/berrywebconfig.service
+        src: ../overlay/etc/systemd/system/berrywebconfig.service
+      register: webconfig_service
+
+    - name: Enable and start web interface service
+      become: true
+      ansible.builtin.systemd_service:
+        name: berrywebconfig
+        enabled: true
+        state: started
+        daemon_reload: "{{ webconfig_service is changed }}"
+      ignore_errors: "{{ ansible_check_mode }}"  # the unit file is not installed in a dry run
+
+    - name: Restart web interface service after an update
+      become: true
+      ansible.builtin.systemd_service:
+        name: berrywebconfig
+        state: restarted
+      when: webconfig_code is changed or webconfig_service is changed
+      ignore_errors: "{{ ansible_check_mode }}"

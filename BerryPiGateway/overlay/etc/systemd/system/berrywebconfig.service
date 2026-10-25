@@ -1,0 +1,19 @@
+[Unit]
+Description=BerryMetre web configuration interface
+After=network.target
+
+[Service]
+User=berrycells
+Group=berrycells
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/berrycells/.Xauthority
+ExecStart=/usr/bin/python3 /home/berrycells/berrywebconfig/berrywebconfig.py --config /home/berrycells/BerryMetre/BerryMetrePythonReceiver/berryconfig.py --start-script /home/berrycells/startBerryMetre.sh --port 80
+# Allow binding to port 80 without running as root
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+# Keep a visualization started from the web interface running when this service restarts
+KillMode=process
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
