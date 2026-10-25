@@ -28,13 +28,22 @@ if ! [ "$(sha256sum -c $imagefile.sha256 | awk '{print $2}')" = "OK" ]; then
     exit 1
 fi
 
-ssh_key=$(printf '%s\n' "$(cat sshkey.pub)" | sed 's/[&/\]/\\&/g')
-
-# Check if ssh_key is empty
-if [[ -z "$ssh_key" ]]; then
-  echo "Error: ssh_key is empty. Please provide a valid SSH key in a file named sshkey.pub." >&2
+# Read local settings like the SSH key from a file outside the repository
+configfile=${BERRYCELLS_CONFIG:-~/.config/berrycells/config.env}
+if [ ! -f "$configfile" ]; then
+  echo "Error: $configfile not found. Create it with a line BERRYCELLS_SSH_KEY='ssh-rsa ...'." >&2
   exit 1
 fi
-sed -i "s/SSH_KEY/$ssh_key/g" firstrun.sh
+source "$configfile"
+
+# Check if the SSH key is empty
+if [[ -z "$BERRYCELLS_SSH_KEY" ]]; then
+  echo "Error: BERRYCELLS_SSH_KEY is empty. Please provide a valid SSH key in $configfile." >&2
+  exit 1
+fi
+ssh_key=$(printf '%s\n' "$BERRYCELLS_SSH_KEY" | sed 's/[&/\]/\\&/g')
+
+# Generate firstrun.sh from the template (firstrun.sh is ignored by git as it contains the key)
+sed "s/SSH_KEY/$ssh_key/g" firstrun.sh.template > firstrun.sh
 
 rpi-imager --cli --sha256 $uncompressedChecksum --first-run-script firstrun.sh $imagefile $target

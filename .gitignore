@@ -23,3 +23,6 @@ __pycache__
 freitaglab.json
 berrytwitter.py
 berryconfig.py
+
+# Generated from firstrun.sh.template by prepareimage.sh, contains the SSH key
+BerryPiGateway/firstrun.sh
