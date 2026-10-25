@@ -82,7 +82,7 @@
           ConfigureWithoutCarrier=yes
 
           [DHCPServer]
-          PoolOffset=10
+          PoolOffset=20
           PoolSize=100
       register: networkd_conf
 
